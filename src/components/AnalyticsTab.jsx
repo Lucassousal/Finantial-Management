@@ -219,6 +219,66 @@ export default function AnalyticsTab() {
   const forecastData = getForecastData()
   const monthlyCategoryData = getMonthlyCategoryData()
 
+  // ==========================================
+  // 5. PREVISÃO DE GASTOS FUTUROS (PRÓXIMOS 4 MESES - STACKED BAR)
+  // ==========================================
+  const getExpensesForecastData = () => {
+    const data = []
+    
+    // Obtém os próximos 4 meses (excluindo o mês atual)
+    for (let i = 1; i <= 4; i++) {
+      const date = new Date()
+      date.setMonth(date.getMonth() + i)
+      const monthKey = date.toISOString().slice(0, 7) // 'YYYY-MM'
+      const [y, m] = monthKey.split('-')
+      const label = `${m}/${y}`
+      
+      const monthData = { monthLabel: label, monthKey }
+      
+      // Inicializa todas as categorias de despesa ativas com zero
+      categories
+        .filter(c => c.type === 'expense')
+        .forEach(cat => {
+          monthData[cat.name] = 0
+        })
+        
+      // A. Lançamentos Futuros agendados para este mês específico
+      transactions
+        .filter(t => t.is_future && t.type === 'expense' && t.date.startsWith(monthKey))
+        .forEach(t => {
+          const catName = t.categories?.name || 'Geral'
+          if (monthData[catName] !== undefined) {
+            monthData[catName] += parseFloat(t.amount || 0)
+          } else {
+            monthData[catName] = parseFloat(t.amount || 0)
+          }
+        })
+        
+      // B. Regras de Lançamentos Recorrentes aplicáveis neste período
+      recurringRules
+        .filter(rule => {
+          if (rule.type !== 'expense') return false
+          const start = rule.start_date.slice(0, 7)
+          const end = rule.end_date ? rule.end_date.slice(0, 7) : '9999-12'
+          return monthKey >= start && monthKey <= end
+        })
+        .forEach(rule => {
+          const catName = rule.categories?.name || 'Geral'
+          if (monthData[catName] !== undefined) {
+            monthData[catName] += parseFloat(rule.amount || 0)
+          } else {
+            monthData[catName] = parseFloat(rule.amount || 0)
+          }
+        })
+        
+      data.push(monthData)
+    }
+    
+    return data
+  }
+  
+  const expensesForecastData = getExpensesForecastData()
+
   // Cores estáticas padrão do Recharts para categorias
   const colorPalette = ['#6366f1', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#ef4444', '#8b5cf6']
 
@@ -352,6 +412,41 @@ export default function AnalyticsTab() {
               </LineChart>
             </ResponsiveContainer>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Previsão de Gastos Futuros (Stacked Bar) */}
+      <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg text-zinc-900 dark:text-white">Previsão de Gastos Futuros (Próximos 4 Meses)</CardTitle>
+          <CardDescription className="text-zinc-500 dark:text-zinc-400">
+            Projeção detalhada por categoria de despesas recorrentes ativas e lançamentos futuros agendados.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={expensesForecastData} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
+              <XAxis dataKey="monthLabel" stroke={theme === 'dark' ? '#a1a1aa' : '#71717a'} fontSize={12} tickLine={false} />
+              <YAxis stroke={theme === 'dark' ? '#a1a1aa' : '#71717a'} fontSize={12} tickLine={false} tickFormatter={(v) => `R$ ${v}`} />
+              <Tooltip 
+                formatter={(value) => formatCurrency(value)}
+                contentStyle={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderColor: theme === 'dark' ? '#27272a' : '#e4e4e7', borderRadius: '6px', color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
+                itemStyle={{ color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
+              />
+              <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+              {categories
+                .filter(c => c.type === 'expense')
+                .map((cat, index) => (
+                  <Bar 
+                    key={cat.id} 
+                    dataKey={cat.name} 
+                    stackId="a" 
+                    fill={cat.color || colorPalette[index % colorPalette.length]} 
+                    radius={[2, 2, 0, 0]}
+                  />
+                ))}
+            </BarChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
 
