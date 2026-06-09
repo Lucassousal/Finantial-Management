@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useFinancial } from '../context/FinancialContext'
 import { useTheme } from '../context/ThemeContext'
@@ -6,6 +6,7 @@ import { Button } from './ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Progress } from './ui/progress'
+import { Input } from './ui/input'
 import { 
   LogOut, 
   TrendingDown, 
@@ -32,6 +33,7 @@ export default function Dashboard() {
   const { user, signOut } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const { transactions, investments, budgets, savingGoals, loading } = useFinancial()
+  const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7)) // 'YYYY-MM'
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
@@ -41,11 +43,11 @@ export default function Dashboard() {
   // CÁLCULOS DO DASHBOARD (VISÃO GERAL)
   // ==========================================
   const totalIncome = transactions
-    .filter(t => t.type === 'income')
+    .filter(t => t.type === 'income' && t.date.startsWith(selectedMonth))
     .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
 
   const totalExpense = transactions
-    .filter(t => t.type === 'expense')
+    .filter(t => t.type === 'expense' && t.date.startsWith(selectedMonth))
     .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
 
   const totalInvested = investments
@@ -145,6 +147,23 @@ export default function Dashboard() {
             ABA 1: VISÃO GERAL (RESUMO RÁPIDO)
             ========================================== */}
         <TabsContent value="overview" className="space-y-6 outline-none">
+          {/* Seletor de Período Mensal */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-lg shadow-sm">
+            <div>
+              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Período de Referência</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">Selecione o mês para filtrar receitas, despesas e limites de orçamentos da visão geral.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <label htmlFor="dashboard-month" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">Mês:</label>
+              <Input
+                id="dashboard-month"
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="w-40 bg-zinc-50 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 focus-visible:ring-emerald-500 cursor-pointer text-sm"
+              />
+            </div>
+          </div>
           {/* Cartões de Indicadores */}
           <div className="grid gap-4 md:grid-cols-4">
             <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
@@ -205,33 +224,36 @@ export default function Dashboard() {
             {/* Resumo Orçamentos */}
             <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
               <CardHeader>
-                <CardTitle className="text-lg">Limites de Gastos (Mês Atual)</CardTitle>
+                <CardTitle className="text-lg">Limites de Gastos ({selectedMonth.split('-')[1]}/{selectedMonth.split('-')[0]})</CardTitle>
                 <CardDescription className="text-zinc-500 dark:text-zinc-400">Acompanhe se está dentro do limite planejado.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 max-h-80 overflow-y-auto pr-1">
-                {budgets.length === 0 ? (
-                  <p className="text-zinc-500 text-sm text-center py-6">Nenhum limite de orçamento definido.</p>
+                {budgets.filter(b => b.month === selectedMonth).length === 0 ? (
+                  <p className="text-zinc-500 text-sm text-center py-6">Nenhum limite de orçamento definido para este mês.</p>
                 ) : (
-                  budgets.slice(0, 4).map(b => {
-                    const spent = getAmountSpentForCategory(b.category_id, b.month)
-                    const pct = Math.min(100, Math.round((spent / b.amount_limit) * 100))
-                    const isOver = spent > b.amount_limit
+                  budgets
+                    .filter(b => b.month === selectedMonth)
+                    .slice(0, 4)
+                    .map(b => {
+                      const spent = getAmountSpentForCategory(b.category_id, selectedMonth)
+                      const pct = Math.min(100, Math.round((spent / b.amount_limit) * 100))
+                      const isOver = spent > b.amount_limit
 
-                    return (
-                      <div key={b.id} className="space-y-1.5">
-                        <div className="flex justify-between text-xs">
-                          <span className="flex items-center gap-1.5 font-medium">
-                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: b.categories?.color }}></span>
-                            {b.categories?.name}
-                          </span>
-                          <span className={isOver ? 'text-rose-500 dark:text-rose-400 font-semibold' : 'text-zinc-500 dark:text-zinc-400'}>
-                            {formatCurrency(spent)} / {formatCurrency(b.amount_limit)}
-                          </span>
+                      return (
+                        <div key={b.id} className="space-y-1.5">
+                          <div className="flex justify-between text-xs">
+                            <span className="flex items-center gap-1.5 font-medium">
+                              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: b.categories?.color }}></span>
+                              {b.categories?.name}
+                            </span>
+                            <span className={isOver ? 'text-rose-500 dark:text-rose-400 font-semibold' : 'text-zinc-500 dark:text-zinc-400'}>
+                              {formatCurrency(spent)} / {formatCurrency(b.amount_limit)}
+                            </span>
+                          </div>
+                          <Progress value={pct} className={`h-1.5 ${isOver ? 'bg-rose-500' : pct >= 75 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
                         </div>
-                        <Progress value={pct} className={`h-1.5 ${isOver ? 'bg-rose-500' : pct >= 75 ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                      </div>
-                    )
-                  })
+                      )
+                    })
                 )}
               </CardContent>
             </Card>
@@ -272,28 +294,31 @@ export default function Dashboard() {
               <CardDescription className="text-zinc-500 dark:text-zinc-400">Transações e aportes recentes no banco de dados.</CardDescription>
             </CardHeader>
             <CardContent>
-              {transactions.length === 0 ? (
-                <p className="text-zinc-500 text-sm text-center py-4">Nenhuma movimentação lançada.</p>
+              {transactions.filter(t => t.date.startsWith(selectedMonth)).length === 0 ? (
+                <p className="text-zinc-500 text-sm text-center py-4">Nenhuma movimentação lançada neste mês.</p>
               ) : (
                 <div className="space-y-3">
-                  {transactions.slice(0, 5).map(t => (
-                    <div key={t.id} className="flex justify-between items-center p-2 rounded bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-sm">
-                      <div>
-                        <div className="font-medium text-zinc-900 dark:text-white flex items-center gap-1.5">
-                          {t.description}
-                          {t.person_name && (
-                            <span className="text-[10px] text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
-                              {t.person_name}
-                            </span>
-                          )}
+                  {transactions
+                    .filter(t => t.date.startsWith(selectedMonth))
+                    .slice(0, 5)
+                    .map(t => (
+                      <div key={t.id} className="flex justify-between items-center p-2 rounded bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-sm">
+                        <div>
+                          <div className="font-medium text-zinc-900 dark:text-white flex items-center gap-1.5">
+                            {t.description}
+                            {t.person_name && (
+                              <span className="text-[10px] text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+                                {t.person_name}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-zinc-400 dark:text-zinc-500">{new Date(t.date).toLocaleDateString('pt-BR')}</p>
                         </div>
-                        <p className="text-xs text-zinc-400 dark:text-zinc-500">{new Date(t.date).toLocaleDateString('pt-BR')}</p>
+                        <span className={`font-semibold ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                          {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
+                        </span>
                       </div>
-                      <span className={`font-semibold ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                        {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               )}
             </CardContent>
