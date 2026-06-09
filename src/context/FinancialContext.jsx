@@ -47,8 +47,10 @@ export const FinancialProvider = ({ children }) => {
         .order('date', { ascending: false })
       if (error) throw error
       setTransactions(data || [])
+      return data || []
     } catch (err) {
       console.error('Erro ao buscar transações:', err.message)
+      return []
     }
   }
 
@@ -334,8 +336,10 @@ export const FinancialProvider = ({ children }) => {
         .select('*, categories(name, color)')
       if (error) throw error
       setRecurringRules(data || [])
+      return data || []
     } catch (err) {
       console.error('Erro ao buscar regras recorrentes:', err.message)
+      return []
     }
   }
 
@@ -369,18 +373,104 @@ export const FinancialProvider = ({ children }) => {
     }
   }
 
+  // Gera transações recorrentes passadas e atuais que ainda não foram inseridas no banco
+  const checkAndGenerateRecurringTransactions = async (currentRules, currentTrans) => {
+    if (!user || !currentRules || currentRules.length === 0) return
+
+    const today = new Date()
+    const currentYear = today.getFullYear()
+    const currentMonth = today.getMonth() // 0-11
+    
+    const newTransactionsToInsert = []
+
+    for (const rule of currentRules) {
+      const startDate = new Date(rule.start_date)
+      const endDate = rule.end_date ? new Date(rule.end_date) : null
+
+      const startYear = startDate.getFullYear()
+      const startMonth = startDate.getMonth()
+      const startDay = startDate.getDate()
+
+      const limitDate = (endDate && endDate < today) ? endDate : today
+      const limitYear = limitDate.getFullYear()
+      const limitMonth = limitDate.getMonth()
+
+      // Total de meses de diferença
+      const diffMonths = (limitYear - startYear) * 12 + (limitMonth - startMonth)
+
+      for (let i = 0; i <= diffMonths; i++) {
+        let targetMonth = startMonth + i
+        let targetYear = startYear + Math.floor(targetMonth / 12)
+        targetMonth = targetMonth % 12
+
+        const monthStr = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}`
+
+        // Verifica se já existe uma transação correspondente a esta regra neste mês/ano
+        const alreadyExists = currentTrans.some(t => 
+          t.recurring_rule_id === rule.id && 
+          t.date.startsWith(monthStr)
+        )
+
+        if (!alreadyExists) {
+          const lastDayOfTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate()
+          const targetDay = Math.min(startDay, lastDayOfTargetMonth)
+          const targetDateStr = `${targetYear}-${String(targetMonth + 1).padStart(2, '0')}-${String(targetDay).padStart(2, '0')}`
+
+          newTransactionsToInsert.push({
+            user_id: user.id,
+            description: rule.description,
+            amount: parseFloat(rule.amount),
+            type: rule.type,
+            category_id: rule.category_id,
+            date: targetDateStr,
+            person_name: rule.person_name || null,
+            is_recurring: true,
+            recurring_rule_id: rule.id,
+            is_future: false,
+            notes: 'Gerado automaticamente a partir da regra de recorrência.'
+          })
+        }
+      }
+    }
+
+    if (newTransactionsToInsert.length > 0) {
+      try {
+        const { data, error } = await supabase
+          .from('transactions')
+          .insert(newTransactionsToInsert)
+          .select('*, categories(name, color)')
+        if (error) throw error
+
+        if (data && data.length > 0) {
+          setTransactions(prev => [...data, ...prev].sort((a, b) => b.date.localeCompare(a.date)))
+        }
+      } catch (err) {
+        console.error('Erro ao gerar transações recorrentes automáticas:', err.message)
+      }
+    }
+  }
+
   // Inicializa todos os dados ao autenticar
   const loadAllData = async () => {
     setLoading(true)
-    await Promise.all([
-      fetchCategories(),
-      fetchTransactions(),
-      fetchBudgets(),
-      fetchInvestments(),
-      fetchSavingGoals(),
-      fetchRecurringRules()
-    ])
-    setLoading(false)
+    try {
+      const [cats, trans, bgts, invs, goals, rules] = await Promise.all([
+        fetchCategories(),
+        fetchTransactions(),
+        fetchBudgets(),
+        fetchInvestments(),
+        fetchSavingGoals(),
+        fetchRecurringRules()
+      ])
+
+      if (trans && rules) {
+        await checkAndGenerateRecurringTransactions(rules, trans)
+      }
+    } catch (err) {
+      console.error('Erro ao carregar dados:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
