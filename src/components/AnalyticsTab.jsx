@@ -20,7 +20,7 @@ import {
   AreaChart, 
   Area 
 } from 'recharts'
-import { TrendingUp, Calendar, Filter } from 'lucide-react'
+import { TrendingUp, Calendar, Filter, HelpCircle, X } from 'lucide-react'
 
 export default function AnalyticsTab() {
   const { theme } = useTheme()
@@ -35,6 +35,7 @@ export default function AnalyticsTab() {
   const [investHistory, setInvestHistory] = useState([])
   const [selectedCats, setSelectedCats] = useState([]) // Categorias selecionadas para histórico
   const [forecastMonths, setForecastMonths] = useState(6)
+  const [isHelpOpen, setIsHelpOpen] = useState(false)
 
   // Coleta histórico de investimentos
   useEffect(() => {
@@ -491,7 +492,16 @@ export default function AnalyticsTab() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-lg text-zinc-900 dark:text-white">Previsão e Evolução Patrimonial</CardTitle>
+                <CardTitle className="text-lg text-zinc-900 dark:text-white flex items-center gap-1.5 font-bold">
+                  Previsão e Evolução Patrimonial
+                  <button 
+                    onClick={() => setIsHelpOpen(true)}
+                    className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-200 p-0.5 rounded transition-colors cursor-pointer"
+                    title="Como funciona a previsão?"
+                  >
+                    <HelpCircle size={16} />
+                  </button>
+                </CardTitle>
                 <CardDescription className="text-zinc-500 dark:text-zinc-400">Previsão para os próximos meses baseada em recorrências e agendamentos.</CardDescription>
               </div>
               <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-xs font-semibold bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20">
@@ -524,6 +534,63 @@ export default function AnalyticsTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de Ajuda da Previsão */}
+      {isHelpOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs transition-opacity duration-200 animate-in fade-in-0">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg max-w-md w-full p-6 shadow-xl space-y-4 animate-in zoom-in-95 duration-150 text-zinc-900 dark:text-zinc-50">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-200 dark:border-zinc-800">
+              <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                <HelpCircle className="text-emerald-500 h-5 w-5" />
+                Como funciona a Previsão?
+              </h3>
+              <button 
+                onClick={() => setIsHelpOpen(false)}
+                className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-200 p-1 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="space-y-3 text-sm text-zinc-650 dark:text-zinc-300 leading-relaxed">
+              <p>
+                Este gráfico estima quanto dinheiro você terá no futuro (linha verde pontilhada) somando tudo o que você ganha e subtraindo tudo o que você gasta ao longo do tempo.
+              </p>
+              
+              <div className="bg-zinc-50 dark:bg-zinc-950 p-3 rounded-md space-y-2 border border-zinc-100 dark:border-zinc-850">
+                <h4 className="font-semibold text-zinc-800 dark:text-zinc-200 text-xs">O que entra na conta?</h4>
+                <ul className="list-disc pl-4 space-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+                  <li><strong>Seu saldo hoje:</strong> O dinheiro total que você tem disponível (contas + investimentos).</li>
+                  <li><strong>Entradas e Saídas fixas:</strong> Contas recorrentes mensais (ex: salário, aluguel, assinaturas).</li>
+                  <li><strong>Gastos programados:</strong> Compras ou despesas únicas agendadas para um mês específico.</li>
+                </ul>
+              </div>
+
+              <div className="bg-emerald-500/5 dark:bg-emerald-500/10 p-3 rounded-md space-y-1 border border-emerald-500/10 text-xs">
+                <h4 className="font-semibold text-emerald-700 dark:text-emerald-400">Exemplo prático simples:</h4>
+                <p className="text-zinc-600 dark:text-zinc-400">
+                  Se hoje você tem <strong>R$ 1.000</strong> guardados, e todo mês recebe <strong>R$ 3.000</strong> (salário) e gasta <strong>R$ 2.000</strong> (contas), no final do próximo mês a previsão é que você tenha:
+                </p>
+                <p className="font-mono text-center font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                  R$ 1.000 + R$ 3.000 - R$ 2.000 = R$ 2.000
+                </p>
+                <p className="text-zinc-500 dark:text-zinc-500 mt-1 text-[11px]">
+                  Se você tiver algum gasto extra agendado, como IPVA de R$ 300, ele também é deduzido automaticamente da projeção daquele mês.
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-2 flex justify-end">
+              <Button 
+                onClick={() => setIsHelpOpen(false)}
+                className="bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200 text-white dark:text-zinc-900 font-medium px-4 py-1.5 cursor-pointer text-xs"
+              >
+                Entendi!
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

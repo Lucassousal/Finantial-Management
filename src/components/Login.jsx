@@ -8,7 +8,6 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
-  const [isSignUp, setIsSignUp] = useState(false)
   const [message, setMessage] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -19,20 +18,11 @@ export default function Login() {
     setErrorMsg('')
 
     try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-        })
-        if (error) throw error
-        setMessage('Cadastro realizado com sucesso! Verifique seu e-mail para confirmação se necessário.')
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
-        if (error) throw error
-      }
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      if (error) throw error
     } catch (err) {
       setErrorMsg(err.message || 'Ocorreu um erro no processo de autenticação.')
     } finally {
@@ -45,12 +35,10 @@ export default function Login() {
       <Card className="w-full max-w-md bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold tracking-tight text-center">
-            {isSignUp ? 'Criar uma conta' : 'Entrar na sua conta'}
+            Entrar na sua conta
           </CardTitle>
           <CardDescription className="text-zinc-500 dark:text-zinc-400 text-center">
-            {isSignUp 
-              ? 'Insira suas informações abaixo para se cadastrar' 
-              : 'Insira seu e-mail e senha para acessar o painel'}
+            Insira seu e-mail e senha para acessar o painel
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -98,28 +86,13 @@ export default function Login() {
 
             <Button 
               type="submit" 
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium cursor-pointer"
               disabled={loading}
             >
-              {loading ? 'Processando...' : isSignUp ? 'Cadastrar' : 'Entrar'}
+              {loading ? 'Processando...' : 'Entrar'}
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
-          <div className="text-sm text-zinc-500 dark:text-zinc-400 text-center">
-            {isSignUp ? 'Já tem uma conta?' : 'Ainda não tem conta?'}
-            <button
-              onClick={() => {
-                setIsSignUp(!isSignUp)
-                setMessage('')
-                setErrorMsg('')
-              }}
-              className="ml-1 text-emerald-600 dark:text-emerald-400 hover:underline font-medium focus:outline-none"
-            >
-              {isSignUp ? 'Fazer login' : 'Cadastre-se'}
-            </button>
-          </div>
-        </CardFooter>
       </Card>
     </div>
   )
