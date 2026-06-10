@@ -5,6 +5,8 @@ import { Input } from './ui/input'
 import { Button } from './ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Trash2, User, Tag, Plus } from 'lucide-react'
+import { ConfirmDialog } from './ui/confirm-dialog'
+
 
 export default function SettingsTab() {
   const {
@@ -25,6 +27,47 @@ export default function SettingsTab() {
   // Estados Membros da Família
   const [memberName, setMemberName] = useState('')
   const [submittingMember, setSubmittingMember] = useState(false)
+
+  // Estados de confirmação de exclusão
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleteConfirmType, setDeleteConfirmType] = useState('') // 'category' ou 'member'
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null)
+  const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('')
+  const [deleteConfirmDesc, setDeleteConfirmDesc] = useState('')
+
+  const confirmDeleteCategory = (id, name) => {
+    setDeleteConfirmId(id)
+    setDeleteConfirmType('category')
+    setDeleteConfirmTitle('Confirmar Exclusão de Categoria')
+    setDeleteConfirmDesc(`Tem certeza de que deseja excluir a categoria "${name}"? Todas as transações associadas a ela ficarão sem categoria (Geral).`)
+    setDeleteConfirmOpen(true)
+  }
+
+  const confirmDeleteMember = (id, name) => {
+    setDeleteConfirmId(id)
+    setDeleteConfirmType('member')
+    setDeleteConfirmTitle('Confirmar Exclusão de Membro da Família')
+    setDeleteConfirmDesc(`Tem certeza de que deseja excluir o membro "${name}"? As transações associadas a este membro não serão excluídas, mas ficarão sem associação.`)
+    setDeleteConfirmOpen(true)
+  }
+
+  const executeDelete = async () => {
+    if (!deleteConfirmId) return
+    try {
+      if (deleteConfirmType === 'category') {
+        await deleteCategory(deleteConfirmId)
+      } else if (deleteConfirmType === 'member') {
+        await deleteFamilyMember(deleteConfirmId)
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setDeleteConfirmOpen(false)
+      setDeleteConfirmId(null)
+      setDeleteConfirmType('')
+    }
+  }
+
 
   const handleAddCat = async (e) => {
     e.preventDefault()
@@ -132,11 +175,12 @@ export default function SettingsTab() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => deleteCategory(c.id)}
+                      onClick={() => confirmDeleteCategory(c.id, c.name)}
                       className="h-7 w-7 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-200 dark:hover:bg-zinc-900"
                     >
                       <Trash2 size={14} />
                     </Button>
+
                   </div>
                 ))
               )}
@@ -188,11 +232,12 @@ export default function SettingsTab() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => deleteFamilyMember(m.id)}
+                      onClick={() => confirmDeleteMember(m.id, m.name)}
                       className="h-7 w-7 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-200 dark:hover:bg-zinc-900"
                     >
                       <Trash2 size={14} />
                     </Button>
+
                   </div>
                 ))
               )}
@@ -200,6 +245,15 @@ export default function SettingsTab() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog 
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={executeDelete}
+        title={deleteConfirmTitle}
+        description={deleteConfirmDesc}
+      />
     </div>
   )
 }
+

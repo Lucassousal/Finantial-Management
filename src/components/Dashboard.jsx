@@ -80,7 +80,7 @@ export default function Dashboard() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
             <Wallet className="text-emerald-500 h-8 w-8" />
-            FinançasFamília
+            Gestão Financeira
           </h1>
           <p className="text-zinc-500 dark:text-zinc-400 text-sm">Controle financeiro familiar compartilhado • {user?.email}</p>
         </div>

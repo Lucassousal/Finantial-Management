@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
 import { Plus, Trash2, Calendar, User, Tag, Clock } from 'lucide-react'
 import { formatCurrencyInput, parseCurrencyToNumber } from '../lib/utils'
+import { ConfirmDialog } from './ui/confirm-dialog'
+
 
 export default function TransactionsTab() {
   const { 
@@ -41,6 +43,14 @@ export default function TransactionsTab() {
   const [recEndDate, setRecEndDate] = useState('')
   const [recFamilyMemberId, setRecFamilyMemberId] = useState('')
   const [submittingRec, setSubmittingRec] = useState(false)
+
+  // Estados de confirmação de exclusão
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleteConfirmType, setDeleteConfirmType] = useState('') // 'transaction' ou 'recurring'
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null)
+  const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('')
+  const [deleteConfirmDesc, setDeleteConfirmDesc] = useState('')
+
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
@@ -98,6 +108,40 @@ export default function TransactionsTab() {
       setSubmittingRec(false)
     }
   }
+
+  const confirmDeleteTrans = (id, description, amount) => {
+    setDeleteConfirmId(id)
+    setDeleteConfirmType('transaction')
+    setDeleteConfirmTitle('Confirmar Exclusão de Transação')
+    setDeleteConfirmDesc(`Tem certeza de que deseja excluir a transação "${description}" no valor de ${formatCurrency(amount)}?`)
+    setDeleteConfirmOpen(true)
+  }
+
+  const confirmDeleteRec = (id, description, amount) => {
+    setDeleteConfirmId(id)
+    setDeleteConfirmType('recurring')
+    setDeleteConfirmTitle('Confirmar Exclusão de Lançamento Recorrente')
+    setDeleteConfirmDesc(`Tem certeza de que deseja excluir a regra de recorrência "${description}" no valor mensal de ${formatCurrency(amount)}?`)
+    setDeleteConfirmOpen(true)
+  }
+
+  const executeDelete = async () => {
+    if (!deleteConfirmId) return
+    try {
+      if (deleteConfirmType === 'transaction') {
+        await deleteTransaction(deleteConfirmId)
+      } else if (deleteConfirmType === 'recurring') {
+        await deleteRecurringRule(deleteConfirmId)
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setDeleteConfirmOpen(false)
+      setDeleteConfirmId(null)
+      setDeleteConfirmType('')
+    }
+  }
+
 
   return (
     <div className="space-y-6 text-zinc-900 dark:text-zinc-50">
@@ -369,11 +413,12 @@ export default function TransactionsTab() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          onClick={() => deleteRecurringRule(rule.id)}
+                          onClick={() => confirmDeleteRec(rule.id, rule.description, rule.amount)}
                           className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-200 dark:hover:bg-zinc-800"
                         >
                           <Trash2 size={16} />
                         </Button>
+
                       </TableCell>
                     </TableRow>
                   ))
@@ -446,11 +491,12 @@ export default function TransactionsTab() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          onClick={() => deleteTransaction(t.id)}
+                          onClick={() => confirmDeleteTrans(t.id, t.description, t.amount)}
                           className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-200 dark:hover:bg-zinc-800"
                         >
                           <Trash2 size={16} />
                         </Button>
+
                       </TableCell>
                     </TableRow>
                   ))}
@@ -460,6 +506,15 @@ export default function TransactionsTab() {
           )}
         </CardContent>
       </Card>
+
+      <ConfirmDialog 
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={executeDelete}
+        title={deleteConfirmTitle}
+        description={deleteConfirmDesc}
+      />
     </div>
   )
 }
+

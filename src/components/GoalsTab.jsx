@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Progress } from './ui/progress'
 import { Plus, Trash2, PiggyBank, Target, Calendar } from 'lucide-react'
 import { formatCurrencyInput, parseCurrencyToNumber } from '../lib/utils'
+import { ConfirmDialog } from './ui/confirm-dialog'
+
 
 export default function GoalsTab() {
   const { 
@@ -27,6 +29,32 @@ export default function GoalsTab() {
   const [selectedGoalId, setSelectedGoalId] = useState('')
   const [depositAmount, setDepositAmount] = useState('')
   const [submittingDeposit, setSubmittingDeposit] = useState(false)
+
+  // Estados de confirmação de exclusão
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null)
+  const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('')
+  const [deleteConfirmDesc, setDeleteConfirmDesc] = useState('')
+
+  const confirmDeleteGoal = (id, name, target, current) => {
+    setDeleteConfirmId(id)
+    setDeleteConfirmTitle('Confirmar Exclusão de Meta/Objetivo')
+    setDeleteConfirmDesc(`Tem certeza de que deseja excluir o objetivo "${name}" (Progresso: ${formatCurrency(current)} de ${formatCurrency(target)})? Esta ação não pode ser desfeita e todo o progresso registrado será perdido.`)
+    setDeleteConfirmOpen(true)
+  }
+
+  const executeDelete = async () => {
+    if (!deleteConfirmId) return
+    try {
+      await deleteSavingGoal(deleteConfirmId)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setDeleteConfirmOpen(false)
+      setDeleteConfirmId(null)
+    }
+  }
+
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
@@ -201,11 +229,12 @@ export default function GoalsTab() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        onClick={() => deleteSavingGoal(goal.id)}
+                        onClick={() => confirmDeleteGoal(goal.id, goal.name, goal.target_amount, goal.current_amount)}
                         className="h-7 w-7 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
                       >
                         <Trash2 size={14} />
                       </Button>
+
                     </div>
 
                     <div className="space-y-1.5">
@@ -222,6 +251,15 @@ export default function GoalsTab() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog 
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={executeDelete}
+        title={deleteConfirmTitle}
+        description={deleteConfirmDesc}
+      />
     </div>
   )
 }
+

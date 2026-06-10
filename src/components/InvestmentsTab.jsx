@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
 import { Plus, Trash2, ArrowUpRight, ArrowDownRight, Edit2 } from 'lucide-react'
 import { formatCurrencyInput, parseCurrencyToNumber } from '../lib/utils'
+import { ConfirmDialog } from './ui/confirm-dialog'
+
 
 export default function InvestmentsTab() {
   const { 
@@ -29,6 +31,32 @@ export default function InvestmentsTab() {
   const [newBalance, setNewBalance] = useState('')
   const [updateDate, setUpdateDate] = useState(new Date().toISOString().split('T')[0])
   const [submittingUpdate, setSubmittingUpdate] = useState(false)
+
+  // Estados de confirmação de exclusão
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null)
+  const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('')
+  const [deleteConfirmDesc, setDeleteConfirmDesc] = useState('')
+
+  const confirmDeleteInvestment = (id, name, balance) => {
+    setDeleteConfirmId(id)
+    setDeleteConfirmTitle('Confirmar Exclusão de Ativo/Investimento')
+    setDeleteConfirmDesc(`Tem certeza de que deseja excluir o investimento "${name}" (Saldo atual: ${formatCurrency(balance)})? Todo o histórico de saldos associado a este investimento também será permanentemente excluído.`)
+    setDeleteConfirmOpen(true)
+  }
+
+  const executeDelete = async () => {
+    if (!deleteConfirmId) return
+    try {
+      await deleteInvestment(deleteConfirmId)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setDeleteConfirmOpen(false)
+      setDeleteConfirmId(null)
+    }
+  }
+
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
@@ -248,11 +276,12 @@ export default function InvestmentsTab() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      onClick={() => deleteInvestment(i.id)}
+                      onClick={() => confirmDeleteInvestment(i.id, i.name, i.current_balance)}
                       className="h-7 w-7 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
                     >
                       <Trash2 size={14} />
                     </Button>
+
                   </div>
                   <div className="flex items-center justify-between pt-1 border-t border-zinc-200 dark:border-zinc-900">
                     <span className="text-xs text-zinc-500">Saldo Atual</span>
@@ -264,6 +293,15 @@ export default function InvestmentsTab() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog 
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={executeDelete}
+        title={deleteConfirmTitle}
+        description={deleteConfirmDesc}
+      />
     </div>
   )
 }
+

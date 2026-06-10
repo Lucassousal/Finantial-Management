@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Progress } from './ui/progress'
 import { Plus, Trash2, AlertTriangle, CheckCircle } from 'lucide-react'
 import { formatCurrencyInput, parseCurrencyToNumber } from '../lib/utils'
+import { ConfirmDialog } from './ui/confirm-dialog'
+
 
 export default function BudgetsTab() {
   const { 
@@ -21,6 +23,34 @@ export default function BudgetsTab() {
   const [amountLimit, setAmountLimit] = useState('')
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7)) // 'YYYY-MM'
   const [submitting, setSubmitting] = useState(false)
+
+  // Estados de confirmação de exclusão
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleteConfirmId, setDeleteConfirmId] = useState(null)
+  const [deleteConfirmTitle, setDeleteConfirmTitle] = useState('')
+  const [deleteConfirmDesc, setDeleteConfirmDesc] = useState('')
+
+  const confirmDeleteBudget = (id, categoryName, month) => {
+    const [y, m] = month.split('-')
+    const formattedMonth = `${m}/${y}`
+    setDeleteConfirmId(id)
+    setDeleteConfirmTitle('Confirmar Exclusão de Orçamento')
+    setDeleteConfirmDesc(`Tem certeza de que deseja excluir o orçamento da categoria "${categoryName}" para o mês ${formattedMonth}?`)
+    setDeleteConfirmOpen(true)
+  }
+
+  const executeDelete = async () => {
+    if (!deleteConfirmId) return
+    try {
+      await deleteBudget(deleteConfirmId)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setDeleteConfirmOpen(false)
+      setDeleteConfirmId(null)
+    }
+  }
+
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
@@ -154,11 +184,12 @@ export default function BudgetsTab() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        onClick={() => deleteBudget(b.id)}
+                        onClick={() => confirmDeleteBudget(b.id, b.categories?.name || 'Geral', b.month)}
                         className="h-7 w-7 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
                       >
                         <Trash2 size={14} />
                       </Button>
+
                     </div>
 
                     <div className="space-y-1.5">
@@ -199,6 +230,15 @@ export default function BudgetsTab() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog 
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        onConfirm={executeDelete}
+        title={deleteConfirmTitle}
+        description={deleteConfirmDesc}
+      />
     </div>
   )
 }
+
