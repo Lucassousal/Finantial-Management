@@ -14,7 +14,15 @@ create table if not exists public.categories (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 2. Tabela de Regras de Lançamentos Recorrentes
+-- 2. Tabela de Membros da Família
+create table if not exists public.family_members (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references auth.users(id) on delete cascade not null,
+  name text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 3. Tabela de Regras de Lançamentos Recorrentes
 create table if not exists public.recurring_rules (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) on delete cascade not null,
@@ -25,11 +33,11 @@ create table if not exists public.recurring_rules (
   frequency text check (frequency in ('monthly', 'weekly', 'yearly')) default 'monthly' not null,
   start_date date not null,
   end_date date,
-  person_name text,
+  family_member_id uuid references public.family_members(id) on delete set null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 3. Tabela de Transações Atualizada
+-- 4. Tabela de Transações Atualizada
 create table if not exists public.transactions (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) on delete cascade not null,
@@ -38,7 +46,7 @@ create table if not exists public.transactions (
   type text check (type in ('income', 'expense', 'investment')) not null,
   category_id uuid references public.categories(id) on delete set null,
   date date not null,
-  person_name text,
+  family_member_id uuid references public.family_members(id) on delete set null,
   is_recurring boolean default false not null,
   recurring_rule_id uuid references public.recurring_rules(id) on delete set null,
   is_future boolean default false not null,
@@ -91,6 +99,7 @@ create table if not exists public.budgets (
 -- HABILITAR SEGURANÇA DE LINHA (RLS)
 -- ==========================================
 alter table public.categories enable row level security;
+alter table public.family_members enable row level security;
 alter table public.recurring_rules enable row level security;
 alter table public.transactions enable row level security;
 alter table public.investments enable row level security;
@@ -103,6 +112,12 @@ alter table public.budgets enable row level security;
 -- ==========================================
 create policy "Users can modify their own categories"
   on public.categories for all using (auth.uid() = user_id);
+
+-- ==========================================
+-- POLÍTICAS RLS - MEMBROS FAMILIARES
+-- ==========================================
+create policy "Users can modify their own family members"
+  on public.family_members for all using (auth.uid() = user_id);
 
 -- ==========================================
 -- POLÍTICAS RLS - RECORRÊNCIA

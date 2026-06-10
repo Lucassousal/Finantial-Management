@@ -13,10 +13,9 @@ export default function TransactionsTab() {
     transactions, 
     categories, 
     recurringRules,
+    familyMembers,
     addTransaction, 
     deleteTransaction,
-    addCategory,
-    deleteCategory,
     addRecurringRule,
     deleteRecurringRule,
     loading 
@@ -28,16 +27,10 @@ export default function TransactionsTab() {
   const [type, setType] = useState('expense')
   const [categoryId, setCategoryId] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
-  const [personName, setPersonName] = useState('')
+  const [familyMemberId, setFamilyMemberId] = useState('')
   const [isFuture, setIsFuture] = useState(false)
   const [notes, setNotes] = useState('')
   const [submittingTrans, setSubmittingTrans] = useState(false)
-
-  // Estados Categoria
-  const [catName, setCatName] = useState('')
-  const [catType, setCatType] = useState('expense')
-  const [catColor, setCatColor] = useState('#10b981')
-  const [submittingCat, setSubmittingCat] = useState(false)
 
   // Estados Recorrência
   const [recDesc, setRecDesc] = useState('')
@@ -46,7 +39,7 @@ export default function TransactionsTab() {
   const [recCatId, setRecCatId] = useState('')
   const [recStartDate, setRecStartDate] = useState(new Date().toISOString().split('T')[0])
   const [recEndDate, setRecEndDate] = useState('')
-  const [recPerson, setRecPerson] = useState('')
+  const [recFamilyMemberId, setRecFamilyMemberId] = useState('')
   const [submittingRec, setSubmittingRec] = useState(false)
 
   const formatCurrency = (val) => {
@@ -64,37 +57,19 @@ export default function TransactionsTab() {
         type,
         category_id: categoryId,
         date,
-        person_name: personName || null,
+        family_member_id: (familyMemberId && familyMemberId !== 'none') ? familyMemberId : null,
         is_future: isFuture,
         notes: notes || null
       })
       setDescription('')
       setAmount('')
-      setPersonName('')
+      setFamilyMemberId('')
       setNotes('')
       setIsFuture(false)
     } catch (err) {
       console.error(err)
     } finally {
       setSubmittingTrans(false)
-    }
-  }
-
-  const handleAddCat = async (e) => {
-    e.preventDefault()
-    if (!catName) return
-    setSubmittingCat(true)
-    try {
-      await addCategory({
-        name: catName,
-        type: catType,
-        color: catColor
-      })
-      setCatName('')
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setSubmittingCat(false)
     }
   }
 
@@ -110,12 +85,12 @@ export default function TransactionsTab() {
         category_id: recCatId,
         start_date: recStartDate,
         end_date: recEndDate || null,
-        person_name: recPerson || null,
+        family_member_id: (recFamilyMemberId && recFamilyMemberId !== 'none') ? recFamilyMemberId : null,
         frequency: 'monthly'
       })
       setRecDesc('')
       setRecAmount('')
-      setRecPerson('')
+      setRecFamilyMemberId('')
       setRecEndDate('')
     } catch (err) {
       console.error(err)
@@ -126,188 +101,131 @@ export default function TransactionsTab() {
 
   return (
     <div className="space-y-6 text-zinc-900 dark:text-zinc-50">
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Formulário de Transação */}
-        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 md:col-span-2 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl text-zinc-900 dark:text-white">Nova Movimentação</CardTitle>
-            <CardDescription className="text-zinc-500 dark:text-zinc-400">Lançamento de fluxo de caixa único (imediato ou futuro).</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAddTrans} className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Descrição</label>
-                <Input 
-                  value={description} 
-                  onChange={(e) => setDescription(e.target.value)} 
-                  placeholder="Supermercado, Transferência, etc."
-                  required 
-                  className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Valor</label>
-                <Input 
-                  type="text" 
-                  value={amount} 
-                  onChange={(e) => setAmount(formatCurrencyInput(e.target.value))} 
-                  placeholder="R$ 0,00"
-                  required 
-                  className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Tipo de Fluxo</label>
-                <Select value={type} onValueChange={(val) => setType(val)}>
-                  <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
-                    <SelectItem value="expense">Despesa</SelectItem>
-                    <SelectItem value="income">Receita</SelectItem>
-                    <SelectItem value="investment">Investimento (Aporte)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Categoria</label>
-                <Select value={categoryId} onValueChange={(val) => setCategoryId(val)}>
-                  <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
-                    <SelectValue placeholder="Selecione a categoria" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
-                    {categories.filter(c => c.type === type).map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        <span className="flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }}></span>
-                          {cat.name}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Data do Lançamento</label>
-                <Input 
-                  type="date"
-                  value={date} 
-                  onChange={(e) => setDate(e.target.value)} 
-                  required 
-                  className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Familiar / Membro (Opcional)</label>
-                <Input 
-                  value={personName} 
-                  onChange={(e) => setPersonName(e.target.value)} 
-                  placeholder="Ex: Lucas, Mariana"
-                  className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
-                />
-              </div>
-
-              <div className="space-y-2 sm:col-span-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Observações (Opcional)</label>
-                <Input 
-                  value={notes} 
-                  onChange={(e) => setNotes(e.target.value)} 
-                  placeholder="Mais informações sobre a transação..."
-                  className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 sm:col-span-2">
-                <input 
-                  type="checkbox" 
-                  id="isFuture" 
-                  checked={isFuture} 
-                  onChange={(e) => setIsFuture(e.target.checked)} 
-                  className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
-                />
-                <label htmlFor="isFuture" className="text-sm text-zinc-600 dark:text-zinc-300 select-none cursor-pointer">
-                  Agendar como lançamento futuro (previsto)
-                </label>
-              </div>
-
-              <Button 
-                type="submit" 
-                disabled={submittingTrans}
-                className="w-full sm:col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium gap-2 mt-2 cursor-pointer"
-              >
-                <Plus size={16} /> Lançar Movimentação
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Gerenciamento de Categorias */}
-        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 md:col-span-1 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl text-zinc-900 dark:text-white">Categorias</CardTitle>
-            <CardDescription className="text-zinc-500 dark:text-zinc-400">Gerencie e crie suas categorias.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <form onSubmit={handleAddCat} className="space-y-3 pb-4 border-b border-zinc-200 dark:border-zinc-800">
+      {/* Formulário de Transação */}
+      <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-xl text-zinc-900 dark:text-white">Nova Movimentação</CardTitle>
+          <CardDescription className="text-zinc-500 dark:text-zinc-400">Lançamento de fluxo de caixa único (imediato ou futuro).</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleAddTrans} className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Descrição</label>
               <Input 
-                value={catName} 
-                onChange={(e) => setCatName(e.target.value)} 
-                placeholder="Nome da Categoria" 
-                required
+                value={description} 
+                onChange={(e) => setDescription(e.target.value)} 
+                placeholder="Supermercado, Transferência, etc."
+                required 
                 className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
               />
-              <Select value={catType} onValueChange={(val) => setCatType(val)}>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Valor</label>
+              <Input 
+                type="text" 
+                value={amount} 
+                onChange={(e) => setAmount(formatCurrencyInput(e.target.value))} 
+                placeholder="R$ 0,00"
+                required 
+                className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Tipo de Fluxo</label>
+              <Select value={type} onValueChange={(val) => setType(val)}>
                 <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
-                  <SelectValue />
+                  <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
                   <SelectItem value="expense">Despesa</SelectItem>
                   <SelectItem value="income">Receita</SelectItem>
-                  <SelectItem value="investment">Investimento</SelectItem>
+                  <SelectItem value="investment">Investimento (Aporte)</SelectItem>
                 </SelectContent>
               </Select>
-              <div className="flex items-center gap-2">
-                <label className="text-sm text-zinc-600 dark:text-zinc-300">Cor:</label>
-                <input 
-                  type="color" 
-                  value={catColor} 
-                  onChange={(e) => setCatColor(e.target.value)} 
-                  className="h-8 w-12 rounded border border-zinc-200 dark:border-zinc-800 bg-transparent cursor-pointer"
-                />
-              </div>
-              <Button type="submit" disabled={submittingCat} className="w-full bg-zinc-800 hover:bg-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-100 cursor-pointer">
-                Criar Categoria
-              </Button>
-            </form>
-            
-            {/* Lista de Categorias */}
-            <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
-              {categories.map(c => (
-                <div key={c.id} className="flex items-center justify-between p-2 rounded bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-sm">
-                  <span className="flex items-center gap-2">
-                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: c.color }}></span>
-                    <span>{c.name}</span>
-                    <span className="text-xs text-zinc-500">({c.type === 'income' ? 'Receita' : c.type === 'investment' ? 'Invest.' : 'Despesa'})</span>
-                  </span>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => deleteCategory(c.id)}
-                    className="h-6 w-6 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-200 dark:hover:bg-zinc-900"
-                  >
-                    <Trash2 size={12} />
-                  </Button>
-                </div>
-              ))}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Categoria</label>
+              <Select value={categoryId} onValueChange={(val) => setCategoryId(val)}>
+                <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  <SelectValue placeholder="Selecione a categoria" />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  {categories.filter(c => c.type === type).map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      <span className="flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }}></span>
+                        {cat.name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Data do Lançamento</label>
+              <Input 
+                type="date"
+                value={date} 
+                onChange={(e) => setDate(e.target.value)} 
+                required 
+                className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Familiar / Membro (Opcional)</label>
+              <Select value={familyMemberId} onValueChange={(val) => setFamilyMemberId(val)}>
+                <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  <SelectValue placeholder="Selecione o membro" />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  <SelectItem value="none">Nenhum / Geral</SelectItem>
+                  {familyMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Observações (Opcional)</label>
+              <Input 
+                value={notes} 
+                onChange={(e) => setNotes(e.target.value)} 
+                placeholder="Mais informações sobre a transação..."
+                className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 sm:col-span-2">
+              <input 
+                type="checkbox" 
+                id="isFuture" 
+                checked={isFuture} 
+                onChange={(e) => setIsFuture(e.target.checked)} 
+                className="h-4 w-4 rounded border-zinc-300 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+              />
+              <label htmlFor="isFuture" className="text-sm text-zinc-600 dark:text-zinc-300 select-none cursor-pointer">
+                Agendar como lançamento futuro (previsto)
+              </label>
+            </div>
+
+            <Button 
+              type="submit" 
+              disabled={submittingTrans}
+              className="w-full sm:col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium gap-2 mt-2 cursor-pointer"
+            >
+              <Plus size={16} /> Lançar Movimentação
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {/* Cadastro de Despesas/Receitas Recorrentes */}
       <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
@@ -389,12 +307,19 @@ export default function TransactionsTab() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Pessoa Responsável (Opcional)</label>
-              <Input 
-                value={recPerson} 
-                onChange={(e) => setRecPerson(e.target.value)} 
-                placeholder="Ex: Lucas"
-                className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
-              />
+              <Select value={recFamilyMemberId} onValueChange={(val) => setRecFamilyMemberId(val)}>
+                <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  <SelectValue placeholder="Selecione o responsável" />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  <SelectItem value="none">Nenhum / Geral</SelectItem>
+                  {familyMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button 
               type="submit" 
@@ -432,7 +357,7 @@ export default function TransactionsTab() {
                           {rule.categories?.name || 'Geral'}
                         </span>
                       </TableCell>
-                      <TableCell className="text-zinc-800 dark:text-zinc-300">{rule.person_name || '-'}</TableCell>
+                      <TableCell className="text-zinc-800 dark:text-zinc-300">{rule.family_members?.name || '-'}</TableCell>
                       <TableCell className="text-xs text-zinc-500 dark:text-zinc-400">
                         De {new Date(rule.start_date).toLocaleDateString('pt-BR')} 
                         {rule.end_date ? ` até ${new Date(rule.end_date).toLocaleDateString('pt-BR')}` : ' (Indeterminado)'}
@@ -498,7 +423,7 @@ export default function TransactionsTab() {
                         </div>
                         {t.notes && <p className="text-xs text-zinc-500 font-normal">{t.notes}</p>}
                       </TableCell>
-                      <TableCell className="text-zinc-800 dark:text-zinc-300">{t.person_name || '-'}</TableCell>
+                      <TableCell className="text-zinc-800 dark:text-zinc-300">{t.family_members?.name || '-'}</TableCell>
                       <TableCell>
                         <span 
                           className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"

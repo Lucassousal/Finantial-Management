@@ -19,7 +19,8 @@ import {
   Target, 
   PieChart,
   Sun,
-  Moon
+  Moon,
+  Settings
 } from 'lucide-react'
 
 // Import das Abas Modulares
@@ -28,6 +29,7 @@ import InvestmentsTab from './InvestmentsTab'
 import GoalsTab from './GoalsTab'
 import BudgetsTab from './BudgetsTab'
 import AnalyticsTab from './AnalyticsTab'
+import SettingsTab from './SettingsTab'
 
 export default function Dashboard() {
   const { user, signOut } = useAuth()
@@ -104,7 +106,7 @@ export default function Dashboard() {
 
       {/* Abas e Navegação */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 p-1 flex flex-wrap h-auto gap-1">
+        <TabsList className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 p-1 flex flex-row flex-nowrap justify-start overflow-x-auto whitespace-nowrap scrollbar-none w-full h-auto gap-1">
           <TabsTrigger 
             value="overview" 
             className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-400 hover:text-zinc-900 dark:hover:text-zinc-200 gap-2 py-2 cursor-pointer transition-colors"
@@ -140,6 +142,12 @@ export default function Dashboard() {
             className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-400 hover:text-zinc-900 dark:hover:text-zinc-200 gap-2 py-2 cursor-pointer transition-colors"
           >
             <PieChart size={16} /> Gráficos
+          </TabsTrigger>
+          <TabsTrigger 
+            value="settings" 
+            className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-400 hover:text-zinc-900 dark:hover:text-zinc-200 gap-2 py-2 cursor-pointer transition-colors"
+          >
+            <Settings size={16} /> Ajustes
           </TabsTrigger>
         </TabsList>
 
@@ -307,9 +315,9 @@ export default function Dashboard() {
                         <div>
                           <div className="font-medium text-zinc-900 dark:text-white flex items-center gap-1.5">
                             {t.description}
-                            {t.person_name && (
+                            {t.family_members?.name && (
                               <span className="text-[10px] text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
-                                {t.person_name}
+                                {t.family_members.name}
                               </span>
                             )}
                           </div>
@@ -359,6 +367,13 @@ export default function Dashboard() {
             ========================================== */}
         <TabsContent value="analytics" className="outline-none">
           <AnalyticsTab />
+        </TabsContent>
+
+        {/* ==========================================
+            ABA 7: CONFIGURAÇÕES (SETTINGS TAB)
+            ========================================== */}
+        <TabsContent value="settings" className="outline-none">
+          <SettingsTab />
         </TabsContent>
       </Tabs>
     </div>

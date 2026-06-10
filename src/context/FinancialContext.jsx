@@ -25,6 +25,10 @@ const FinancialContext = createContext({
   updateSavingGoalAmount: () => Promise.resolve(),
   addRecurringRule: () => Promise.resolve(),
   deleteRecurringRule: () => Promise.resolve(),
+  familyMembers: [],
+  fetchFamilyMembers: () => Promise.resolve(),
+  addFamilyMember: () => Promise.resolve(),
+  deleteFamilyMember: () => Promise.resolve(),
 })
 
 export const FinancialProvider = ({ children }) => {
@@ -35,6 +39,7 @@ export const FinancialProvider = ({ children }) => {
   const [investments, setInvestments] = useState([])
   const [savingGoals, setSavingGoals] = useState([])
   const [recurringRules, setRecurringRules] = useState([])
+  const [familyMembers, setFamilyMembers] = useState([])
   const [loading, setLoading] = useState(false)
 
   // 1. Transactions CRUD
@@ -43,7 +48,7 @@ export const FinancialProvider = ({ children }) => {
     try {
       const { data, error } = await supabase
         .from('transactions')
-        .select('*, categories(name, color)')
+        .select('*, categories(name, color), family_members(name)')
         .order('date', { ascending: false })
       if (error) throw error
       setTransactions(data || [])
@@ -60,7 +65,7 @@ export const FinancialProvider = ({ children }) => {
       const { data, error } = await supabase
         .from('transactions')
         .insert([{ ...newTransaction, user_id: user.id }])
-        .select('*, categories(name, color)')
+        .select('*, categories(name, color), family_members(name)')
 
       if (error) throw error
       setTransactions((prev) => [data[0], ...prev])
@@ -333,7 +338,7 @@ export const FinancialProvider = ({ children }) => {
     try {
       const { data, error } = await supabase
         .from('recurring_rules')
-        .select('*, categories(name, color)')
+        .select('*, categories(name, color), family_members(name)')
       if (error) throw error
       setRecurringRules(data || [])
       return data || []
@@ -349,7 +354,7 @@ export const FinancialProvider = ({ children }) => {
       const { data, error } = await supabase
         .from('recurring_rules')
         .insert([{ ...rule, user_id: user.id }])
-        .select('*, categories(name, color)')
+        .select('*, categories(name, color), family_members(name)')
       if (error) throw error
       setRecurringRules(prev => [data[0], ...prev])
       return data[0]
@@ -423,7 +428,7 @@ export const FinancialProvider = ({ children }) => {
             type: rule.type,
             category_id: rule.category_id,
             date: targetDateStr,
-            person_name: rule.person_name || null,
+            family_member_id: rule.family_member_id || null,
             is_recurring: true,
             recurring_rule_id: rule.id,
             is_future: false,
@@ -438,7 +443,7 @@ export const FinancialProvider = ({ children }) => {
         const { data, error } = await supabase
           .from('transactions')
           .insert(newTransactionsToInsert)
-          .select('*, categories(name, color)')
+          .select('*, categories(name, color), family_members(name)')
         if (error) throw error
 
         if (data && data.length > 0) {
@@ -451,16 +456,68 @@ export const FinancialProvider = ({ children }) => {
   }
 
   // Inicializa todos os dados ao autenticar
+  // 7. Family Members CRUD
+  const fetchFamilyMembers = async () => {
+    if (!user) return
+    try {
+      const { data, error } = await supabase
+        .from('family_members')
+        .select('*')
+        .order('name')
+      if (error) throw error
+      setFamilyMembers(data || [])
+      return data || []
+    } catch (err) {
+      console.error('Erro ao buscar membros da família:', err.message)
+      return []
+    }
+  }
+
+  const addFamilyMember = async (name) => {
+    if (!user) return
+    try {
+      const { data, error } = await supabase
+        .from('family_members')
+        .insert([{ name, user_id: user.id }])
+        .select()
+      if (error) throw error
+      setFamilyMembers(prev => [...prev, data[0]].sort((a, b) => a.name.localeCompare(b.name)))
+      return data[0]
+    } catch (err) {
+      console.error('Erro ao adicionar membro da família:', err.message)
+      throw err
+    }
+  }
+
+  const deleteFamilyMember = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('family_members')
+        .delete()
+        .eq('id', id)
+      if (error) throw error
+      setFamilyMembers(prev => prev.filter(m => m.id !== id))
+      
+      // Update local state to set null to associations
+      setTransactions(prev => prev.map(t => t.family_member_id === id ? { ...t, family_member_id: null, family_members: null } : t))
+      setRecurringRules(prev => prev.map(r => r.family_member_id === id ? { ...r, family_member_id: null, family_members: null } : r))
+    } catch (err) {
+      console.error('Erro ao deletar membro da família:', err.message)
+      throw err
+    }
+  }
+
   const loadAllData = async () => {
     setLoading(true)
     try {
-      const [cats, trans, bgts, invs, goals, rules] = await Promise.all([
+      const [cats, trans, bgts, invs, goals, rules, members] = await Promise.all([
         fetchCategories(),
         fetchTransactions(),
         fetchBudgets(),
         fetchInvestments(),
         fetchSavingGoals(),
-        fetchRecurringRules()
+        fetchRecurringRules(),
+        fetchFamilyMembers()
       ])
 
       if (trans && rules) {
@@ -483,6 +540,7 @@ export const FinancialProvider = ({ children }) => {
       setInvestments([])
       setSavingGoals([])
       setRecurringRules([])
+      setFamilyMembers([])
     }
   }, [user])
 
@@ -493,6 +551,7 @@ export const FinancialProvider = ({ children }) => {
     investments,
     savingGoals,
     recurringRules,
+    familyMembers,
     loading,
     fetchTransactions,
     addTransaction,
@@ -509,6 +568,9 @@ export const FinancialProvider = ({ children }) => {
     updateSavingGoalAmount,
     addRecurringRule,
     deleteRecurringRule,
+    fetchFamilyMembers,
+    addFamilyMember,
+    deleteFamilyMember,
     loadAllData
   }
 

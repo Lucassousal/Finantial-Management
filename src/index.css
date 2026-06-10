@@ -128,3 +128,12 @@
     @apply font-sans;
     }
 }
+
+/* Ocultar barra de rolagem mantendo funcionalidade */
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
