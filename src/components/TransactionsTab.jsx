@@ -338,6 +338,28 @@ export default function TransactionsTab() {
   const [editTransNotes, setEditTransNotes] = useState('')
   const [submittingEditTrans, setSubmittingEditTrans] = useState(false)
 
+  // Estados de Paginação e Filtro de Datas
+  const [startDateFilter, setStartDateFilter] = useState('')
+  const [endDateFilter, setEndDateFilter] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 30
+
+  // Filtra as transações por data
+  const filteredTransactions = transactions.filter(t => {
+    if (startDateFilter && t.date < startDateFilter) return false
+    if (endDateFilter && t.date > endDateFilter) return false
+    return true
+  })
+
+  // Garante que a página atual é válida após filtragem
+  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE) || 1
+  const activePage = Math.min(currentPage, totalPages)
+  
+  const paginatedTransactions = filteredTransactions.slice(
+    (activePage - 1) * ITEMS_PER_PAGE,
+    activePage * ITEMS_PER_PAGE
+  )
+
   const handleStartEditRec = (rule) => {
     setEditRecId(rule.id)
     setEditRecDesc(rule.description)
@@ -1169,74 +1191,153 @@ Retorne estritamente um objeto JSON no seguinte formato:
           ) : transactions.length === 0 ? (
             <div className="text-zinc-500 dark:text-zinc-400 text-center py-6">Nenhuma transação encontrada.</div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table className="text-zinc-750 dark:text-zinc-200">
-                <TableHeader className="border-zinc-200 dark:border-zinc-800">
-                  <TableRow className="border-zinc-200 dark:border-zinc-800 hover:bg-transparent">
-                    <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Descrição</TableHead>
-                    <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Membro</TableHead>
-                    <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Categoria</TableHead>
-                    <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Data</TableHead>
-                    <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Tipo</TableHead>
-                    <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium text-right">Valor</TableHead>
-                    <TableHead className="w-10"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {transactions.map((t) => (
-                    <TableRow key={t.id} className="border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40">
-                      <TableCell>
-                        <div className="font-medium text-zinc-900 dark:text-white flex items-center gap-2">
-                          {t.description}
-                          {t.is_future && (
-                            <span className="inline-flex items-center rounded-md bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400 ring-1 ring-inset ring-amber-500/20">
-                              Agendado
-                            </span>
-                          )}
-                        </div>
-                        {t.notes && <p className="text-xs text-zinc-500 font-normal">{t.notes}</p>}
-                      </TableCell>
-                      <TableCell className="text-zinc-800 dark:text-zinc-300">{t.family_members?.name || '-'}</TableCell>
-                      <TableCell>
-                        <span 
-                          className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                          style={{ 
-                            backgroundColor: (t.categories?.color || '#3f3f46') + '15',
-                            color: t.categories?.color || '#a1a1aa'
-                          }}
+            <div className="space-y-4">
+              {/* Filtros de Data */}
+              <div className="flex flex-wrap items-center gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">De:</span>
+                  <Input 
+                    type="date"
+                    value={startDateFilter}
+                    onChange={(e) => {
+                      setStartDateFilter(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                    className="w-40 h-9 bg-white dark:bg-zinc-955 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Até:</span>
+                  <Input 
+                    type="date"
+                    value={endDateFilter}
+                    onChange={(e) => {
+                      setEndDateFilter(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                    className="w-40 h-9 bg-white dark:bg-zinc-955 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                  />
+                </div>
+                {(startDateFilter || endDateFilter) && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      setStartDateFilter('')
+                      setEndDateFilter('')
+                      setCurrentPage(1)
+                    }}
+                    className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                  >
+                    Limpar Filtros
+                  </Button>
+                )}
+              </div>
+
+              {filteredTransactions.length === 0 ? (
+                <div className="text-zinc-500 dark:text-zinc-400 text-center py-6">Nenhuma transação encontrada para o período selecionado.</div>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <Table className="text-zinc-750 dark:text-zinc-200">
+                      <TableHeader className="border-zinc-200 dark:border-zinc-800">
+                        <TableRow className="border-zinc-200 dark:border-zinc-800 hover:bg-transparent">
+                          <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Descrição</TableHead>
+                          <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Membro</TableHead>
+                          <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Categoria</TableHead>
+                          <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Data</TableHead>
+                          <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Tipo</TableHead>
+                          <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium text-right">Valor</TableHead>
+                          <TableHead className="w-10"></TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedTransactions.map((t) => (
+                          <TableRow key={t.id} className="border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40">
+                            <TableCell>
+                              <div className="font-medium text-zinc-900 dark:text-white flex items-center gap-2">
+                                {t.description}
+                                {t.is_future && (
+                                  <span className="inline-flex items-center rounded-md bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400 ring-1 ring-inset ring-amber-500/20">
+                                    Agendado
+                                  </span>
+                                )}
+                              </div>
+                              {t.notes && <p className="text-xs text-zinc-500 font-normal">{t.notes}</p>}
+                            </TableCell>
+                            <TableCell className="text-zinc-800 dark:text-zinc-300">{t.family_members?.name || '-'}</TableCell>
+                            <TableCell>
+                              <span 
+                                className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                                style={{ 
+                                  backgroundColor: (t.categories?.color || '#3f3f46') + '15',
+                                  color: t.categories?.color || '#a1a1aa'
+                                }}
+                              >
+                                {t.categories?.name || 'Geral'}
+                              </span>
+                            </TableCell>
+                            <TableCell>{new Date(t.date).toLocaleDateString('pt-BR')}</TableCell>
+                            <TableCell className="text-xs capitalize text-zinc-500 dark:text-zinc-400">
+                              {t.type === 'income' ? 'Receita' : t.type === 'investment' ? 'Aporte' : 'Despesa'}
+                            </TableCell>
+                            <TableCell className={`text-right font-semibold ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                              {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
+                            </TableCell>
+                            <TableCell>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => handleStartEditTrans(t)}
+                                className="text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 mr-1"
+                              >
+                                <Edit2 size={16} />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => confirmDeleteTrans(t.id, t.description, t.amount)}
+                                className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Controles de Paginação */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-4">
+                      <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                        Mostrando {paginatedTransactions.length} de {filteredTransactions.length} transações (Página {activePage} de {totalPages})
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={activePage === 1}
+                          className="cursor-pointer"
                         >
-                          {t.categories?.name || 'Geral'}
-                        </span>
-                      </TableCell>
-                      <TableCell>{new Date(t.date).toLocaleDateString('pt-BR')}</TableCell>
-                      <TableCell className="text-xs capitalize text-zinc-500 dark:text-zinc-400">
-                        {t.type === 'income' ? 'Receita' : t.type === 'investment' ? 'Aporte' : 'Despesa'}
-                      </TableCell>
-                      <TableCell className={`text-right font-semibold ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                        {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
-                      </TableCell>
-                      <TableCell>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => handleStartEditTrans(t)}
-                          className="text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 mr-1"
-                        >
-                          <Edit2 size={16} />
+                          Anterior
                         </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => confirmDeleteTrans(t.id, t.description, t.amount)}
-                          className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          disabled={activePage === totalPages}
+                          className="cursor-pointer"
                         >
-                          <Trash2 size={16} />
+                          Próximo
                         </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
         </CardContent>
