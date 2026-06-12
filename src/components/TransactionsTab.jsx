@@ -1140,7 +1140,13 @@ Retorne estritamente um objeto JSON no seguinte formato:
                     <TableRow key={rule.id} className="border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40">
                       <TableCell className="font-medium text-zinc-900 dark:text-white">{rule.description}</TableCell>
                       <TableCell>
-                        <span className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-transparent">
+                        <span 
+                          className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                          style={{ 
+                            backgroundColor: (rule.categories?.color || '#3f3f46') + '15',
+                            color: rule.categories?.color || '#a1a1aa'
+                          }}
+                        >
                           {rule.categories?.name || 'Geral'}
                         </span>
                       </TableCell>
