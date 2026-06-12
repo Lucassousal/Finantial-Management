@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useFinancial } from '../context/FinancialContext'
 import { supabase } from '../lib/supabaseClient'
 import { useTheme } from '../context/ThemeContext'
@@ -80,40 +80,44 @@ export default function AnalyticsTab() {
   // ==========================================
   // 1. DADOS DE DESPESAS POR CATEGORIA (PIE)
   // ==========================================
-  const expenseData = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, curr) => {
-      const catName = curr.categories?.name || 'Geral'
-      const catColor = curr.categories?.color || '#3f3f46'
-      const existing = acc.find(item => item.name === catName)
-      if (existing) {
-        existing.value += parseFloat(curr.amount)
-      } else {
-        acc.push({ name: catName, value: parseFloat(curr.amount), color: catColor })
-      }
-      return acc
-    }, [])
+  const expenseData = useMemo(() => {
+    return transactions
+      .filter(t => t.type === 'expense')
+      .reduce((acc, curr) => {
+        const catName = curr.categories?.name || 'Geral'
+        const catColor = curr.categories?.color || '#3f3f46'
+        const existing = acc.find(item => item.name === catName)
+        if (existing) {
+          existing.value += parseFloat(curr.amount)
+        } else {
+          acc.push({ name: catName, value: parseFloat(curr.amount), color: catColor })
+        }
+        return acc
+      }, [])
+  }, [transactions])
 
   // ==========================================
   // 2. DADOS DE RECEITA VS DESPESA (BAR)
   // ==========================================
-  const totalIncome = transactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + parseFloat(t.amount), 0)
+  const barData = useMemo(() => {
+    const totalIncome = transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + parseFloat(t.amount), 0)
 
-  const totalExpense = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + parseFloat(t.amount), 0)
+    const totalExpense = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + parseFloat(t.amount), 0)
 
-  const barData = [
-    { name: 'Receitas x Despesas', Receitas: totalIncome, Despesas: totalExpense }
-  ]
+    return [
+      { name: 'Receitas x Despesas', Receitas: totalIncome, Despesas: totalExpense }
+    ]
+  }, [transactions])
 
   // ==========================================
   // 3. DADOS DE EVOLUÇÃO MENSAL POR CATEGORIA (LINE)
   // ==========================================
   // Agrupa gastos de despesas por Mês-Ano
-  const getMonthlyCategoryData = () => {
+  const monthlyCategoryData = useMemo(() => {
     const monthlyMap = {}
     
     // Obtém os últimos 6 meses
@@ -143,7 +147,7 @@ export default function AnalyticsTab() {
     })
 
     return Object.values(monthlyMap)
-  }
+  }, [transactions, selectedCats])
 
   const toggleCategorySelection = (catName) => {
     setSelectedCats(prev => 
@@ -154,7 +158,7 @@ export default function AnalyticsTab() {
   // ==========================================
   // 4. PREVISÃO E PROJEÇÃO FUTURA (DASHED LINE)
   // ==========================================
-  const getForecastData = () => {
+  const forecastData = useMemo(() => {
     const forecast = []
     
     // Calcula o saldo atual inicial líquido (Saldo em contas + Investimentos)
@@ -215,15 +219,12 @@ export default function AnalyticsTab() {
     }
 
     return forecast
-  }
-
-  const forecastData = getForecastData()
-  const monthlyCategoryData = getMonthlyCategoryData()
+  }, [transactions, investments, recurringRules, forecastMonths])
 
   // ==========================================
   // 5. PREVISÃO DE GASTOS FUTUROS (PRÓXIMOS 4 MESES - STACKED BAR)
   // ==========================================
-  const getExpensesForecastData = () => {
+  const expensesForecastData = useMemo(() => {
     const data = []
     
     // Obtém os próximos 4 meses (excluindo o mês atual)
@@ -276,9 +277,7 @@ export default function AnalyticsTab() {
     }
     
     return data
-  }
-  
-  const expensesForecastData = getExpensesForecastData()
+  }, [categories, transactions, recurringRules])
 
   // Cores estáticas padrão do Recharts para categorias
   const colorPalette = ['#6366f1', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#ef4444', '#8b5cf6']

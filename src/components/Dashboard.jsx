@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, Suspense, lazy } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useFinancial } from '../context/FinancialContext'
 import { useTheme } from '../context/ThemeContext'
@@ -23,13 +23,13 @@ import {
   Settings
 } from 'lucide-react'
 
-// Import das Abas Modulares
-import TransactionsTab from './TransactionsTab'
-import InvestmentsTab from './InvestmentsTab'
-import GoalsTab from './GoalsTab'
-import BudgetsTab from './BudgetsTab'
-import AnalyticsTab from './AnalyticsTab'
-import SettingsTab from './SettingsTab'
+// Import das Abas Modulares com Lazy Loading
+const TransactionsTab = lazy(() => import('./TransactionsTab'))
+const InvestmentsTab = lazy(() => import('./InvestmentsTab'))
+const GoalsTab = lazy(() => import('./GoalsTab'))
+const BudgetsTab = lazy(() => import('./BudgetsTab'))
+const AnalyticsTab = lazy(() => import('./AnalyticsTab'))
+const SettingsTab = lazy(() => import('./SettingsTab'))
 
 export default function Dashboard() {
   const { user, signOut } = useAuth()
@@ -338,42 +338,54 @@ export default function Dashboard() {
             ABA 2: LANÇAMENTOS (TRANSAÇÕES TAB)
             ========================================== */}
         <TabsContent value="transactions" className="outline-none">
-          <TransactionsTab />
+          <Suspense fallback={<div className="flex justify-center items-center h-64 text-zinc-500">Carregando módulo...</div>}>
+            <TransactionsTab />
+          </Suspense>
         </TabsContent>
 
         {/* ==========================================
             ABA 3: INVESTIMENTOS (INVESTMENTS TAB)
             ========================================== */}
         <TabsContent value="investments" className="outline-none">
-          <InvestmentsTab />
+          <Suspense fallback={<div className="flex justify-center items-center h-64 text-zinc-500">Carregando módulo...</div>}>
+            <InvestmentsTab />
+          </Suspense>
         </TabsContent>
 
         {/* ==========================================
             ABA 4: ORÇAMENTOS (BUDGETS TAB)
             ========================================== */}
         <TabsContent value="budgets" className="outline-none">
-          <BudgetsTab />
+          <Suspense fallback={<div className="flex justify-center items-center h-64 text-zinc-500">Carregando módulo...</div>}>
+            <BudgetsTab />
+          </Suspense>
         </TabsContent>
 
         {/* ==========================================
             ABA 5: METAS (GOALS TAB)
             ========================================== */}
         <TabsContent value="goals" className="outline-none">
-          <GoalsTab />
+          <Suspense fallback={<div className="flex justify-center items-center h-64 text-zinc-500">Carregando módulo...</div>}>
+            <GoalsTab />
+          </Suspense>
         </TabsContent>
 
         {/* ==========================================
             ABA 6: GRÁFICOS (ANALYTICS TAB)
             ========================================== */}
         <TabsContent value="analytics" className="outline-none">
-          <AnalyticsTab />
+          <Suspense fallback={<div className="flex justify-center items-center h-64 text-zinc-500">Carregando módulo...</div>}>
+            <AnalyticsTab />
+          </Suspense>
         </TabsContent>
 
         {/* ==========================================
             ABA 7: CONFIGURAÇÕES (SETTINGS TAB)
             ========================================== */}
         <TabsContent value="settings" className="outline-none">
-          <SettingsTab />
+          <Suspense fallback={<div className="flex justify-center items-center h-64 text-zinc-500">Carregando módulo...</div>}>
+            <SettingsTab />
+          </Suspense>
         </TabsContent>
       </Tabs>
     </div>

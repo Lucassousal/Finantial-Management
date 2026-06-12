@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useFinancial } from '../context/FinancialContext'
 import { Button } from './ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
@@ -345,20 +345,24 @@ export default function TransactionsTab() {
   const ITEMS_PER_PAGE = 30
 
   // Filtra as transações por data
-  const filteredTransactions = transactions.filter(t => {
-    if (startDateFilter && t.date < startDateFilter) return false
-    if (endDateFilter && t.date > endDateFilter) return false
-    return true
-  })
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(t => {
+      if (startDateFilter && t.date < startDateFilter) return false
+      if (endDateFilter && t.date > endDateFilter) return false
+      return true
+    })
+  }, [transactions, startDateFilter, endDateFilter])
 
   // Garante que a página atual é válida após filtragem
-  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE) || 1
+  const totalPages = useMemo(() => Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE) || 1, [filteredTransactions.length])
   const activePage = Math.min(currentPage, totalPages)
   
-  const paginatedTransactions = filteredTransactions.slice(
-    (activePage - 1) * ITEMS_PER_PAGE,
-    activePage * ITEMS_PER_PAGE
-  )
+  const paginatedTransactions = useMemo(() => {
+    return filteredTransactions.slice(
+      (activePage - 1) * ITEMS_PER_PAGE,
+      activePage * ITEMS_PER_PAGE
+    )
+  }, [filteredTransactions, activePage])
 
   const handleStartEditRec = (rule) => {
     setEditRecId(rule.id)
