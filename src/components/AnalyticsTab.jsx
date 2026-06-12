@@ -36,6 +36,14 @@ export default function AnalyticsTab() {
   const [selectedCats, setSelectedCats] = useState([]) // Categorias selecionadas para histórico
   const [forecastMonths, setForecastMonths] = useState(6)
   const [isHelpOpen, setIsHelpOpen] = useState(false)
+  const [shouldRenderCharts, setShouldRenderCharts] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShouldRenderCharts(true)
+    }, 150)
+    return () => clearTimeout(timer)
+  }, [])
 
   // Coleta histórico de investimentos
   useEffect(() => {
@@ -65,11 +73,11 @@ export default function AnalyticsTab() {
     fetchHistory()
   }, [investments])
 
-  // Inicializa a seleção de categorias do histórico com as 3 primeiras despesas
+  // Inicializa a seleção de categorias do histórico com todas as despesas
   useEffect(() => {
     const expenseCats = categories.filter(c => c.type === 'expense').map(c => c.name)
     if (selectedCats.length === 0 && expenseCats.length > 0) {
-      setSelectedCats(expenseCats.slice(0, 3))
+      setSelectedCats(expenseCats)
     }
   }, [categories])
 
@@ -281,6 +289,15 @@ export default function AnalyticsTab() {
 
   // Cores estáticas padrão do Recharts para categorias
   const colorPalette = ['#6366f1', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#ef4444', '#8b5cf6']
+
+  if (!shouldRenderCharts) {
+    return (
+      <div className="flex h-[60vh] w-full flex-col items-center justify-center gap-4 text-zinc-500 dark:text-zinc-400">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-emerald-500 border-t-transparent"></div>
+        <span className="text-sm font-medium animate-pulse">Carregando painel de métricas...</span>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 text-zinc-900 dark:text-zinc-50">
