@@ -1203,7 +1203,7 @@ Retorne estritamente um objeto JSON no seguinte formato:
                       setStartDateFilter(e.target.value)
                       setCurrentPage(1)
                     }}
-                    className="w-40 h-9 bg-white dark:bg-zinc-955 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                    className="w-40 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -1215,7 +1215,7 @@ Retorne estritamente um objeto JSON no seguinte formato:
                       setEndDateFilter(e.target.value)
                       setCurrentPage(1)
                     }}
-                    className="w-40 h-9 bg-white dark:bg-zinc-955 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                    className="w-40 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
                   />
                 </div>
                 {(startDateFilter || endDateFilter) && (
