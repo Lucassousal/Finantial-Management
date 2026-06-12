@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Plus, Trash2, ArrowUpRight, ArrowDownRight, Edit2 } from 'lucide-react'
 import { formatCurrencyInput, parseCurrencyToNumber } from '../lib/utils'
 import { ConfirmDialog } from './ui/confirm-dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 
 
 export default function InvestmentsTab() {
@@ -15,6 +16,7 @@ export default function InvestmentsTab() {
     investments, 
     addInvestment, 
     deleteInvestment, 
+    updateInvestment,
     updateInvestmentBalance,
     loading 
   } = useFinancial()
@@ -31,6 +33,44 @@ export default function InvestmentsTab() {
   const [newBalance, setNewBalance] = useState('')
   const [updateDate, setUpdateDate] = useState(new Date().toISOString().split('T')[0])
   const [submittingUpdate, setSubmittingUpdate] = useState(false)
+
+  // Estados Edição de Investimento
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editId, setEditId] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [editType, setEditType] = useState('fixed_income')
+  const [editInstitution, setEditInstitution] = useState('')
+  const [editBalance, setEditBalance] = useState('')
+  const [submittingEdit, setSubmittingEdit] = useState(false)
+
+  const handleStartEdit = (inv) => {
+    setEditId(inv.id)
+    setEditName(inv.name)
+    setEditType(inv.type)
+    setEditInstitution(inv.institution || '')
+    setEditBalance(formatCurrencyInput(String(Math.round(inv.current_balance * 100))))
+    setIsEditOpen(true)
+  }
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault()
+    if (!editName || !editBalance) return
+    setSubmittingEdit(true)
+    try {
+      await updateInvestment(editId, {
+        name: editName,
+        type: editType,
+        institution: editInstitution || null,
+        current_balance: parseCurrencyToNumber(editBalance)
+      })
+      setIsEditOpen(false)
+    } catch (err) {
+      console.error(err)
+      alert("Erro ao salvar alterações do ativo.")
+    } finally {
+      setSubmittingEdit(false)
+    }
+  }
 
   // Estados de confirmação de exclusão
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -273,14 +313,24 @@ export default function InvestmentsTab() {
                       <h4 className="font-semibold text-zinc-900 dark:text-white">{i.name}</h4>
                       <p className="text-xs text-zinc-500 dark:text-zinc-400">{i.institution || 'Sem corretora'} • {translateType(i.type)}</p>
                     </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => confirmDeleteInvestment(i.id, i.name, i.current_balance)}
-                      className="h-7 w-7 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
-                    >
-                      <Trash2 size={14} />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => handleStartEdit(i)}
+                        className="h-7 w-7 text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                      >
+                        <Edit2 size={14} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => confirmDeleteInvestment(i.id, i.name, i.current_balance)}
+                        className="h-7 w-7 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
 
                   </div>
                   <div className="flex items-center justify-between pt-1 border-t border-zinc-200 dark:border-zinc-900">
@@ -301,6 +351,71 @@ export default function InvestmentsTab() {
         title={deleteConfirmTitle}
         description={deleteConfirmDesc}
       />
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-md bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+          <DialogHeader>
+            <DialogTitle>Editar Ativo</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveEdit} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Nome do Ativo</label>
+              <Input 
+                value={editName} 
+                onChange={(e) => setEditName(e.target.value)} 
+                required 
+                className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Tipo de Ativo</label>
+              <Select value={editType} onValueChange={(val) => setEditType(val)}>
+                <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  <SelectItem value="fixed_income">Renda Fixa</SelectItem>
+                  <SelectItem value="stocks">Ações</SelectItem>
+                  <SelectItem value="fii">Fundos Imobiliários (FII)</SelectItem>
+                  <SelectItem value="crypto">Criptomoedas</SelectItem>
+                  <SelectItem value="savings">Poupança</SelectItem>
+                  <SelectItem value="other">Outros Ativos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Instituição (Opcional)</label>
+              <Input 
+                value={editInstitution} 
+                onChange={(e) => setEditInstitution(e.target.value)} 
+                className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Saldo Atual</label>
+              <Input 
+                type="text" 
+                value={editBalance} 
+                onChange={(e) => setEditBalance(formatCurrencyInput(e.target.value))} 
+                required 
+                className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+              />
+            </div>
+
+            <DialogFooter className="mt-4 gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={submittingEdit} className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium cursor-pointer">
+                {submittingEdit ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

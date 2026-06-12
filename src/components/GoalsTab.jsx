@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Progress } from './ui/progress'
-import { Plus, Trash2, PiggyBank, Target, Calendar } from 'lucide-react'
+import { Plus, Trash2, PiggyBank, Target, Calendar, Edit2 } from 'lucide-react'
 import { formatCurrencyInput, parseCurrencyToNumber } from '../lib/utils'
 import { ConfirmDialog } from './ui/confirm-dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 
 
 export default function GoalsTab() {
@@ -15,6 +16,7 @@ export default function GoalsTab() {
     savingGoals, 
     addSavingGoal, 
     deleteSavingGoal, 
+    updateSavingGoal,
     updateSavingGoalAmount,
     loading 
   } = useFinancial()
@@ -24,6 +26,44 @@ export default function GoalsTab() {
   const [targetAmount, setTargetAmount] = useState('')
   const [targetDate, setTargetDate] = useState('')
   const [submittingGoal, setSubmittingGoal] = useState(false)
+
+  // Estados Edição de Meta
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editId, setEditId] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [editTargetAmount, setEditTargetAmount] = useState('')
+  const [editCurrentAmount, setEditCurrentAmount] = useState('')
+  const [editTargetDate, setEditTargetDate] = useState('')
+  const [submittingEdit, setSubmittingEdit] = useState(false)
+
+  const handleStartEdit = (goal) => {
+    setEditId(goal.id)
+    setEditName(goal.name)
+    setEditTargetAmount(formatCurrencyInput(String(Math.round(goal.target_amount * 100))))
+    setEditCurrentAmount(formatCurrencyInput(String(Math.round(goal.current_amount * 100))))
+    setEditTargetDate(goal.target_date || '')
+    setIsEditOpen(true)
+  }
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault()
+    if (!editName || !editTargetAmount) return
+    setSubmittingEdit(true)
+    try {
+      await updateSavingGoal(editId, {
+        name: editName,
+        target_amount: parseCurrencyToNumber(editTargetAmount),
+        current_amount: parseCurrencyToNumber(editCurrentAmount),
+        target_date: editTargetDate || null
+      })
+      setIsEditOpen(false)
+    } catch (err) {
+      console.error(err)
+      alert("Erro ao salvar alterações do objetivo.")
+    } finally {
+      setSubmittingEdit(false)
+    }
+  }
 
   // Estados Aporte de Meta
   const [selectedGoalId, setSelectedGoalId] = useState('')
@@ -226,14 +266,24 @@ export default function GoalsTab() {
                           </p>
                         )}
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => confirmDeleteGoal(goal.id, goal.name, goal.target_amount, goal.current_amount)}
-                        className="h-7 w-7 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
-                      >
-                        <Trash2 size={14} />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleStartEdit(goal)}
+                          className="h-7 w-7 text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                        >
+                          <Edit2 size={14} />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => confirmDeleteGoal(goal.id, goal.name, goal.target_amount, goal.current_amount)}
+                          className="h-7 w-7 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
 
                     </div>
 
@@ -259,6 +309,67 @@ export default function GoalsTab() {
         title={deleteConfirmTitle}
         description={deleteConfirmDesc}
       />
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-md bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+          <DialogHeader>
+            <DialogTitle>Editar Meta / Objetivo</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveEdit} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Nome do Objetivo</label>
+              <Input 
+                value={editName} 
+                onChange={(e) => setEditName(e.target.value)} 
+                required 
+                className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Valor Alvo</label>
+                <Input 
+                  type="text" 
+                  value={editTargetAmount} 
+                  onChange={(e) => setEditTargetAmount(formatCurrencyInput(e.target.value))} 
+                  required 
+                  className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Valor Guardado (Atual)</label>
+                <Input 
+                  type="text" 
+                  value={editCurrentAmount} 
+                  onChange={(e) => setEditCurrentAmount(formatCurrencyInput(e.target.value))} 
+                  required 
+                  className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Data Limite (Opcional)</label>
+              <Input 
+                type="date"
+                value={editTargetDate} 
+                onChange={(e) => setEditTargetDate(e.target.value)} 
+                className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+              />
+            </div>
+
+            <DialogFooter className="mt-4 gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={submittingEdit} className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium cursor-pointer">
+                {submittingEdit ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

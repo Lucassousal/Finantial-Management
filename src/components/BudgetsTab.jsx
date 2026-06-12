@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Progress } from './ui/progress'
-import { Plus, Trash2, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Plus, Trash2, AlertTriangle, CheckCircle, Edit2 } from 'lucide-react'
 import { formatCurrencyInput, parseCurrencyToNumber } from '../lib/utils'
 import { ConfirmDialog } from './ui/confirm-dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 
 
 export default function BudgetsTab() {
@@ -16,13 +17,49 @@ export default function BudgetsTab() {
     categories, 
     transactions, 
     addBudget, 
-    deleteBudget 
+    deleteBudget,
+    updateBudget
   } = useFinancial()
 
   const [categoryId, setCategoryId] = useState('')
   const [amountLimit, setAmountLimit] = useState('')
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7)) // 'YYYY-MM'
   const [submitting, setSubmitting] = useState(false)
+
+  // Estados Edição de Orçamento
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [editId, setEditId] = useState(null)
+  const [editCategoryId, setEditCategoryId] = useState('')
+  const [editAmountLimit, setEditAmountLimit] = useState('')
+  const [editMonth, setEditMonth] = useState('')
+  const [submittingEdit, setSubmittingEdit] = useState(false)
+
+  const handleStartEdit = (b) => {
+    setEditId(b.id)
+    setEditCategoryId(b.category_id)
+    setEditAmountLimit(formatCurrencyInput(String(Math.round(b.amount_limit * 100))))
+    setEditMonth(b.month)
+    setIsEditOpen(true)
+  }
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault()
+    if (!editCategoryId || !editAmountLimit || !editMonth) return
+    setSubmittingEdit(true)
+    try {
+      await updateBudget(editId, {
+        category_id: editCategoryId,
+        amount_limit: parseCurrencyToNumber(editAmountLimit),
+        month: editMonth
+      })
+      setIsEditOpen(false)
+    } catch (err) {
+      console.error(err)
+      alert("Erro ao salvar alterações do orçamento.")
+    } finally {
+      setSubmittingEdit(false)
+    }
+  }
 
   // Estados de confirmação de exclusão
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
@@ -181,14 +218,24 @@ export default function BudgetsTab() {
                           <span className="text-xs text-zinc-500">• Mês {formattedMonth}</span>
                         </div>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => confirmDeleteBudget(b.id, b.categories?.name || 'Geral', b.month)}
-                        className="h-7 w-7 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
-                      >
-                        <Trash2 size={14} />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => handleStartEdit(b)}
+                          className="h-7 w-7 text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                        >
+                          <Edit2 size={14} />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => confirmDeleteBudget(b.id, b.categories?.name || 'Geral', b.month)}
+                          className="h-7 w-7 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                        >
+                          <Trash2 size={14} />
+                        </Button>
+                      </div>
 
                     </div>
 
@@ -238,6 +285,62 @@ export default function BudgetsTab() {
         title={deleteConfirmTitle}
         description={deleteConfirmDesc}
       />
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="max-w-md bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+          <DialogHeader>
+            <DialogTitle>Editar Limite de Gastos</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveEdit} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Categoria</label>
+              <Select value={editCategoryId} onValueChange={(val) => setEditCategoryId(val)}>
+                <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  <SelectValue placeholder="Selecione a categoria" />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  {categories.filter(c => c.type === 'expense').map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Limite Mensal</label>
+              <Input 
+                type="text" 
+                value={editAmountLimit} 
+                onChange={(e) => setEditAmountLimit(formatCurrencyInput(e.target.value))} 
+                required 
+                className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Mês de Referência</label>
+              <Input 
+                type="month"
+                value={editMonth} 
+                onChange={(e) => setEditMonth(e.target.value)} 
+                required 
+                className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+              />
+            </div>
+
+            <DialogFooter className="mt-4 gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={submittingEdit} className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium cursor-pointer">
+                {submittingEdit ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

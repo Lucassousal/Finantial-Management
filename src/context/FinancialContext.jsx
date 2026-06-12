@@ -13,22 +13,29 @@ const FinancialContext = createContext({
   fetchTransactions: () => Promise.resolve(),
   addTransaction: () => Promise.resolve(),
   deleteTransaction: () => Promise.resolve(),
+  updateTransaction: () => Promise.resolve(),
   addCategory: () => Promise.resolve(),
   deleteCategory: () => Promise.resolve(),
+  updateCategory: () => Promise.resolve(),
   addBudget: () => Promise.resolve(),
   deleteBudget: () => Promise.resolve(),
+  updateBudget: () => Promise.resolve(),
   addInvestment: () => Promise.resolve(),
   deleteInvestment: () => Promise.resolve(),
+  updateInvestment: () => Promise.resolve(),
   updateInvestmentBalance: () => Promise.resolve(),
   addSavingGoal: () => Promise.resolve(),
   deleteSavingGoal: () => Promise.resolve(),
+  updateSavingGoal: () => Promise.resolve(),
   updateSavingGoalAmount: () => Promise.resolve(),
   addRecurringRule: () => Promise.resolve(),
   deleteRecurringRule: () => Promise.resolve(),
+  updateRecurringRule: () => Promise.resolve(),
   familyMembers: [],
   fetchFamilyMembers: () => Promise.resolve(),
   addFamilyMember: () => Promise.resolve(),
   deleteFamilyMember: () => Promise.resolve(),
+  updateFamilyMember: () => Promise.resolve(),
 })
 
 export const FinancialProvider = ({ children }) => {
@@ -508,6 +515,152 @@ export const FinancialProvider = ({ children }) => {
     }
   }
 
+  const updateTransaction = async (id, updatedTransaction) => {
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .update(updatedTransaction)
+        .eq('id', id)
+        .select('*, categories(name, color), family_members(name)')
+      if (error) throw error
+      setTransactions(prev => prev.map(t => t.id === id ? data[0] : t))
+      return data[0]
+    } catch (err) {
+      console.error('Erro ao atualizar transação:', err.message)
+      throw err
+    }
+  }
+
+  const updateRecurringRule = async (id, updatedRule) => {
+    try {
+      const { data, error } = await supabase
+        .from('recurring_rules')
+        .update(updatedRule)
+        .eq('id', id)
+        .select('*, categories(name, color), family_members(name)')
+      if (error) throw error
+      setRecurringRules(prev => prev.map(r => r.id === id ? data[0] : r))
+      
+      // Também atualiza localmente as transações associadas a esta regra na lista local para sincronizar nome/valor/etc.
+      setTransactions(prev => prev.map(t => t.recurring_rule_id === id ? {
+        ...t,
+        description: data[0].description,
+        amount: data[0].amount,
+        category_id: data[0].category_id,
+        categories: data[0].categories,
+        family_member_id: data[0].family_member_id,
+        family_members: data[0].family_members
+      } : t))
+      
+      return data[0]
+    } catch (err) {
+      console.error('Erro ao atualizar regra recorrente:', err.message)
+      throw err
+    }
+  }
+
+  const updateInvestment = async (id, updatedInvestment) => {
+    try {
+      const { data, error } = await supabase
+        .from('investments')
+        .update(updatedInvestment)
+        .eq('id', id)
+        .select()
+      if (error) throw error
+
+      // Registra no histórico se o saldo mudou
+      const oldInvestment = investments.find(i => i.id === id)
+      if (oldInvestment && Number(oldInvestment.current_balance) !== Number(updatedInvestment.current_balance)) {
+        await supabase.from('investment_history').insert({
+          investment_id: id,
+          balance: updatedInvestment.current_balance,
+          date: new Date().toISOString().split('T')[0]
+        })
+      }
+
+      setInvestments(prev => prev.map(i => i.id === id ? data[0] : i))
+      return data[0]
+    } catch (err) {
+      console.error('Erro ao atualizar investimento:', err.message)
+      throw err
+    }
+  }
+
+  const updateBudget = async (id, updatedBudget) => {
+    try {
+      const { data, error } = await supabase
+        .from('budgets')
+        .update(updatedBudget)
+        .eq('id', id)
+        .select('*, categories(name, color)')
+      if (error) throw error
+      setBudgets(prev => prev.map(b => b.id === id ? data[0] : b))
+      return data[0]
+    } catch (err) {
+      console.error('Erro ao atualizar orçamento:', err.message)
+      throw err
+    }
+  }
+
+  const updateSavingGoal = async (id, updatedGoal) => {
+    try {
+      const { data, error } = await supabase
+        .from('saving_goals')
+        .update(updatedGoal)
+        .eq('id', id)
+        .select()
+      if (error) throw error
+      setSavingGoals(prev => prev.map(g => g.id === id ? data[0] : g))
+      return data[0]
+    } catch (err) {
+      console.error('Erro ao atualizar meta:', err.message)
+      throw err
+    }
+  }
+
+  const updateCategory = async (id, updatedCategory) => {
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .update(updatedCategory)
+        .eq('id', id)
+        .select()
+      if (error) throw error
+      setCategories(prev => prev.map(c => c.id === id ? data[0] : c).sort((a, b) => a.name.localeCompare(b.name)))
+
+      // Propaga a atualização nas transações, recorrências e orçamentos que referenciam essa categoria
+      setTransactions(prev => prev.map(t => t.category_id === id ? { ...t, categories: data[0] } : t))
+      setRecurringRules(prev => prev.map(r => r.category_id === id ? { ...r, categories: data[0] } : r))
+      setBudgets(prev => prev.map(b => b.category_id === id ? { ...b, categories: data[0] } : b))
+
+      return data[0]
+    } catch (err) {
+      console.error('Erro ao atualizar categoria:', err.message)
+      throw err
+    }
+  }
+
+  const updateFamilyMember = async (id, name) => {
+    try {
+      const { data, error } = await supabase
+        .from('family_members')
+        .update({ name })
+        .eq('id', id)
+        .select()
+      if (error) throw error
+      setFamilyMembers(prev => prev.map(m => m.id === id ? data[0] : m).sort((a, b) => a.name.localeCompare(b.name)))
+
+      // Propaga a atualização nas transações e recorrências que referenciam esse membro
+      setTransactions(prev => prev.map(t => t.family_member_id === id ? { ...t, family_members: data[0] } : t))
+      setRecurringRules(prev => prev.map(r => r.family_member_id === id ? { ...r, family_members: data[0] } : r))
+
+      return data[0]
+    } catch (err) {
+      console.error('Erro ao atualizar membro da família:', err.message)
+      throw err
+    }
+  }
+
   const loadAllData = async () => {
     setLoading(true)
     try {
@@ -557,21 +710,28 @@ export const FinancialProvider = ({ children }) => {
     fetchTransactions,
     addTransaction,
     deleteTransaction,
+    updateTransaction,
     addCategory,
     deleteCategory,
+    updateCategory,
     addBudget,
     deleteBudget,
+    updateBudget,
     addInvestment,
     deleteInvestment,
+    updateInvestment,
     updateInvestmentBalance,
     addSavingGoal,
     deleteSavingGoal,
+    updateSavingGoal,
     updateSavingGoalAmount,
     addRecurringRule,
     deleteRecurringRule,
+    updateRecurringRule,
     fetchFamilyMembers,
     addFamilyMember,
     deleteFamilyMember,
+    updateFamilyMember,
     loadAllData
   }
 

@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
-import { Plus, Trash2, Calendar, User, Tag, Clock, FileText } from 'lucide-react'
+import { Plus, Trash2, Calendar, User, Tag, Clock, FileText, Edit2 } from 'lucide-react'
 import { formatCurrencyInput, parseCurrencyToNumber } from '../lib/utils'
 import { ConfirmDialog } from './ui/confirm-dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const loadPdfJs = () => {
@@ -268,8 +269,10 @@ export default function TransactionsTab() {
     familyMembers,
     addTransaction, 
     deleteTransaction,
+    updateTransaction,
     addRecurringRule,
     deleteRecurringRule,
+    updateRecurringRule,
     loading 
   } = useFinancial()
 
@@ -309,6 +312,103 @@ export default function TransactionsTab() {
   const [referenceMonth, setReferenceMonth] = useState(new Date().getMonth() + 1)
   const [referenceYear, setReferenceYear] = useState(new Date().getFullYear())
   const [savingImport, setSavingImport] = useState(false)
+
+  // Estados para Edição de Lançamento Recorrente
+  const [isEditRecOpen, setIsEditRecOpen] = useState(false)
+  const [editRecId, setEditRecId] = useState(null)
+  const [editRecDesc, setEditRecDesc] = useState('')
+  const [editRecAmount, setEditRecAmount] = useState('')
+  const [editRecType, setEditRecType] = useState('expense')
+  const [editRecCatId, setEditRecCatId] = useState('')
+  const [editRecStartDate, setEditRecStartDate] = useState('')
+  const [editRecEndDate, setEditRecEndDate] = useState('')
+  const [editRecFamilyMemberId, setEditRecFamilyMemberId] = useState('')
+  const [submittingEditRec, setSubmittingEditRec] = useState(false)
+
+  // Estados para Edição de Transação Comum
+  const [isEditTransOpen, setIsEditTransOpen] = useState(false)
+  const [editTransId, setEditTransId] = useState(null)
+  const [editTransDesc, setEditTransDesc] = useState('')
+  const [editTransAmount, setEditTransAmount] = useState('')
+  const [editTransType, setEditTransType] = useState('expense')
+  const [editTransCatId, setEditTransCatId] = useState('')
+  const [editTransDate, setEditTransDate] = useState('')
+  const [editTransFamilyMemberId, setEditTransFamilyMemberId] = useState('')
+  const [editTransIsFuture, setEditTransIsFuture] = useState(false)
+  const [editTransNotes, setEditTransNotes] = useState('')
+  const [submittingEditTrans, setSubmittingEditTrans] = useState(false)
+
+  const handleStartEditRec = (rule) => {
+    setEditRecId(rule.id)
+    setEditRecDesc(rule.description)
+    setEditRecAmount(formatCurrencyInput(String(Math.round(rule.amount * 100))))
+    setEditRecType(rule.type)
+    setEditRecCatId(rule.category_id || '')
+    setEditRecStartDate(rule.start_date)
+    setEditRecEndDate(rule.end_date || '')
+    setEditRecFamilyMemberId(rule.family_member_id || 'none')
+    setIsEditRecOpen(true)
+  }
+
+  const handleStartEditTrans = (t) => {
+    setEditTransId(t.id)
+    setEditTransDesc(t.description)
+    setEditTransAmount(formatCurrencyInput(String(Math.round(t.amount * 100))))
+    setEditTransType(t.type)
+    setEditTransCatId(t.category_id || '')
+    setEditTransDate(t.date)
+    setEditTransFamilyMemberId(t.family_member_id || 'none')
+    setEditTransIsFuture(t.is_future || false)
+    setEditTransNotes(t.notes || '')
+    setIsEditTransOpen(true)
+  }
+
+  const handleSaveEditRec = async (e) => {
+    e.preventDefault()
+    if (!editRecDesc || !editRecAmount || !editRecCatId || !editRecStartDate) return
+    setSubmittingEditRec(true)
+    try {
+      await updateRecurringRule(editRecId, {
+        description: editRecDesc,
+        amount: parseCurrencyToNumber(editRecAmount),
+        type: editRecType,
+        category_id: editRecCatId,
+        start_date: editRecStartDate,
+        end_date: editRecEndDate || null,
+        family_member_id: (editRecFamilyMemberId && editRecFamilyMemberId !== 'none') ? editRecFamilyMemberId : null,
+      })
+      setIsEditRecOpen(false)
+    } catch (err) {
+      console.error(err)
+      alert("Erro ao salvar alterações da regra recorrente.")
+    } finally {
+      setSubmittingEditRec(false)
+    }
+  }
+
+  const handleSaveEditTrans = async (e) => {
+    e.preventDefault()
+    if (!editTransDesc || !editTransAmount || !editTransCatId || !editTransDate) return
+    setSubmittingEditTrans(true)
+    try {
+      await updateTransaction(editTransId, {
+        description: editTransDesc,
+        amount: parseCurrencyToNumber(editTransAmount),
+        type: editTransType,
+        category_id: editTransCatId,
+        date: editTransDate,
+        family_member_id: (editTransFamilyMemberId && editTransFamilyMemberId !== 'none') ? editTransFamilyMemberId : null,
+        is_future: editTransIsFuture,
+        notes: editTransNotes || null
+      })
+      setIsEditTransOpen(false)
+    } catch (err) {
+      console.error(err)
+      alert("Erro ao salvar alterações da transação.")
+    } finally {
+      setSubmittingEditTrans(false)
+    }
+  }
 
 
 
@@ -1034,12 +1134,19 @@ Retorne estritamente um objeto JSON no seguinte formato:
                         <Button 
                           variant="ghost" 
                           size="icon" 
+                          onClick={() => handleStartEditRec(rule)}
+                          className="text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 mr-1"
+                        >
+                          <Edit2 size={16} />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
                           onClick={() => confirmDeleteRec(rule.id, rule.description, rule.amount)}
                           className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-200 dark:hover:bg-zinc-800"
                         >
                           <Trash2 size={16} />
                         </Button>
-
                       </TableCell>
                     </TableRow>
                   ))
@@ -1112,12 +1219,19 @@ Retorne estritamente um objeto JSON no seguinte formato:
                         <Button 
                           variant="ghost" 
                           size="icon" 
+                          onClick={() => handleStartEditTrans(t)}
+                          className="text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 mr-1"
+                        >
+                          <Edit2 size={16} />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
                           onClick={() => confirmDeleteTrans(t.id, t.description, t.amount)}
                           className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-200 dark:hover:bg-zinc-800"
                         >
                           <Trash2 size={16} />
                         </Button>
-
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1135,6 +1249,221 @@ Retorne estritamente um objeto JSON no seguinte formato:
         title={deleteConfirmTitle}
         description={deleteConfirmDesc}
       />
+
+      {/* Modal para Edição de Lançamento Recorrente */}
+      <Dialog open={isEditRecOpen} onOpenChange={setIsEditRecOpen}>
+        <DialogContent className="max-w-md bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+          <DialogHeader>
+            <DialogTitle>Editar Regra Recorrente</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveEditRec} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Descrição</label>
+              <Input 
+                value={editRecDesc} 
+                onChange={(e) => setEditRecDesc(e.target.value)} 
+                required 
+                className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Valor</label>
+                <Input 
+                  value={editRecAmount} 
+                  onChange={(e) => setEditRecAmount(formatCurrencyInput(e.target.value))} 
+                  required 
+                  className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Tipo</label>
+                <Select value={editRecType} onValueChange={(val) => setEditRecType(val)}>
+                  <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                    <SelectItem value="expense">Despesa</SelectItem>
+                    <SelectItem value="income">Receita</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Categoria</label>
+              <Select value={editRecCatId} onValueChange={(val) => setEditRecCatId(val)}>
+                <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  <SelectValue placeholder="Selecione a categoria" />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  {categories.filter(c => c.type === editRecType).map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Início</label>
+                <Input 
+                  type="date"
+                  value={editRecStartDate} 
+                  onChange={(e) => setEditRecStartDate(e.target.value)} 
+                  required 
+                  className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Término (Op.)</label>
+                <Input 
+                  type="date"
+                  value={editRecEndDate} 
+                  onChange={(e) => setEditRecEndDate(e.target.value)} 
+                  className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Pessoa Responsável (Opcional)</label>
+              <Select value={editRecFamilyMemberId} onValueChange={(val) => setEditRecFamilyMemberId(val)}>
+                <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  <SelectValue placeholder="Selecione o responsável" />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  <SelectItem value="none">Nenhum / Geral</SelectItem>
+                  {familyMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter className="mt-4 gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditRecOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={submittingEditRec} className="bg-indigo-600 hover:bg-indigo-500 text-white font-medium cursor-pointer">
+                {submittingEditRec ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal para Edição de Transação Comum */}
+      <Dialog open={isEditTransOpen} onOpenChange={setIsEditTransOpen}>
+        <DialogContent className="max-w-md bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+          <DialogHeader>
+            <DialogTitle>Editar Movimentação</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSaveEditTrans} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Descrição</label>
+              <Input 
+                value={editTransDesc} 
+                onChange={(e) => setEditTransDesc(e.target.value)} 
+                required 
+                className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Valor</label>
+                <Input 
+                  value={editTransAmount} 
+                  onChange={(e) => setEditTransAmount(formatCurrencyInput(e.target.value))} 
+                  required 
+                  className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Tipo</label>
+                <Select value={editTransType} onValueChange={(val) => setEditTransType(val)}>
+                  <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                    <SelectItem value="expense">Despesa</SelectItem>
+                    <SelectItem value="income">Receita</SelectItem>
+                    <SelectItem value="investment">Investimento (Aporte)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Categoria</label>
+                <Select value={editTransCatId} onValueChange={(val) => setEditTransCatId(val)}>
+                  <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                    {categories.filter(c => c.type === editTransType).map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Data</label>
+                <Input 
+                  type="date"
+                  value={editTransDate} 
+                  onChange={(e) => setEditTransDate(e.target.value)} 
+                  required 
+                  className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Familiar / Membro (Opcional)</label>
+              <Select value={editTransFamilyMemberId} onValueChange={(val) => setEditTransFamilyMemberId(val)}>
+                <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  <SelectValue placeholder="Selecione o membro" />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                  <SelectItem value="none">Nenhum / Geral</SelectItem>
+                  {familyMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Observações (Opcional)</label>
+              <Input 
+                value={editTransNotes} 
+                onChange={(e) => setEditTransNotes(e.target.value)} 
+                placeholder="Mais informações..."
+                className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                id="editTransIsFuture" 
+                checked={editTransIsFuture} 
+                onChange={(e) => setEditTransIsFuture(e.target.checked)} 
+                className="h-4 w-4 rounded border-zinc-350 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+              />
+              <label htmlFor="editTransIsFuture" className="text-sm text-zinc-650 dark:text-zinc-300 select-none cursor-pointer">
+                Agendar como lançamento futuro (previsto)
+              </label>
+            </div>
+            <DialogFooter className="mt-4 gap-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditTransOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={submittingEditTrans} className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium cursor-pointer">
+                {submittingEditTrans ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Tela Cheia para Importação de PDF */}
       {isImportModalOpen && (
