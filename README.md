@@ -12,6 +12,7 @@ Uma plataforma premium para controle de finanças pessoais e orçamento familiar
 * **🛡️ Limite de Gastos (Orçamentos)**: Definição de tetos de gastos mensais por categoria com avisos visuais automáticos de atenção (75% atingido) e limite excedido (100% atingido).
 * **📈 Controle de Investimentos**: Carteira de ativos categorizada por tipo (Renda Fixa, Ações, FIIs, Criptomoedas, Poupança e Outros) com histórico de evolução e saldo acumulado por instituição financeira.
 * **👥 Gestão Familiar**: Cadastro prévio de membros da família para associação e rastreamento de quem realizou a despesa ou é responsável pela receita/recorrência.
+* **📄 Importação Inteligente de Extratos/Faturas (PDF)**: Leitura e extração automática de dados de faturas em formato PDF, com algoritmos de prevenção contra lançamentos duplicados e desmarcação automática de itens que já constam no banco.
 * **🌙 Tema Escuro & Claro**: Design moderno e elegante utilizando HSL cores e micro-animações, totalmente integrado em ambos os modos.
 * **🔒 Segurança & Privacidade**: Autenticação robusta de usuários gerenciada diretamente por políticas de segurança a nível de linha de tabela (Row Level Security - RLS) do Supabase.
 
@@ -20,6 +21,7 @@ Uma plataforma premium para controle de finanças pessoais e orçamento familiar
 ## 🛠️ Stack Tecnológica
 
 * **Frontend**: React 19, Vite, TailwindCSS (v4), Radix UI (para componentes de diálogo, select, etc.).
+* **Testes**: Vitest, React Testing Library, JSDOM.
 * **Ícones**: Lucide React.
 * **Gráficos**: Recharts.
 * **Backend & Banco de Dados**: Supabase (PostgreSQL, Auth e Row Level Security).
@@ -56,6 +58,17 @@ npm run dev
 ```
 
 Abra o navegador em `http://localhost:5173/` para acessar a aplicação.
+
+### 5. Executando os Testes Unitários
+O projeto possui uma suíte robusta de testes automatizados com Supabase mockado.
+
+```bash
+# Rodar todos os testes no modo de escuta
+npm run test
+
+# Gerar o relatório de cobertura de código
+npm run test:coverage
+```
 
 ---
 
