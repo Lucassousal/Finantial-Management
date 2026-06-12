@@ -432,6 +432,7 @@ export const FinancialProvider = ({ children }) => {
             is_recurring: true,
             recurring_rule_id: rule.id,
             is_future: false,
+            statement_name: rule.statement_name || null,
             notes: 'Gerado automaticamente a partir da regra de recorrência.'
           })
         }

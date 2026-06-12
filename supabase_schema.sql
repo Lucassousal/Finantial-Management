@@ -34,6 +34,7 @@ create table if not exists public.recurring_rules (
   start_date date not null,
   end_date date,
   family_member_id uuid references public.family_members(id) on delete set null,
+  statement_name text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -50,6 +51,7 @@ create table if not exists public.transactions (
   is_recurring boolean default false not null,
   recurring_rule_id uuid references public.recurring_rules(id) on delete set null,
   is_future boolean default false not null,
+  statement_name text,
   notes text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
