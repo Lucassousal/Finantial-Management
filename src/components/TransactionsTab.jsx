@@ -6,7 +6,7 @@ import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
-import { Plus, Trash2, Calendar, User, Tag, Clock, FileText, Edit2 } from 'lucide-react'
+import { Plus, Trash2, Calendar, User, Tag, Clock, FileText, Edit2, Loader2 } from 'lucide-react'
 import { formatCurrencyInput, parseCurrencyToNumber } from '../lib/utils'
 import { ConfirmDialog } from './ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
@@ -958,7 +958,15 @@ Retorne estritamente um objeto JSON no seguinte formato:
               disabled={submittingTrans}
               className="w-full sm:col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium gap-2 mt-2 cursor-pointer"
             >
-              <Plus size={16} /> Lançar Movimentação
+              {submittingTrans ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Salvando...
+                </>
+              ) : (
+                <>
+                  <Plus size={16} /> Lançar Movimentação
+                </>
+              )}
             </Button>
           </form>
         </CardContent>
@@ -1063,7 +1071,15 @@ Retorne estritamente um objeto JSON no seguinte formato:
               disabled={submittingRec}
               className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium gap-2 cursor-pointer"
             >
-              <Clock size={16} /> Salvar Regra de Recorrência
+              {submittingRec ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Salvando...
+                </>
+              ) : (
+                <>
+                  <Clock size={16} /> Salvar Regra de Recorrência
+                </>
+              )}
             </Button>
           </form>
 
@@ -1462,9 +1478,15 @@ Retorne estritamente um objeto JSON no seguinte formato:
                 <Button 
                   onClick={handleSaveImport} 
                   disabled={savingImport || importItems.filter(i => i.should_import).length === 0} 
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium cursor-pointer"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium cursor-pointer flex items-center gap-2"
                 >
-                  {savingImport ? 'Importando...' : `Confirmar e Importar (${importItems.filter(i => i.should_import).length} itens)`}
+                  {savingImport ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" /> Importando...
+                    </>
+                  ) : (
+                    `Confirmar e Importar (${importItems.filter(i => i.should_import).length} itens)`
+                  )}
                 </Button>
               </div>
             </div>
