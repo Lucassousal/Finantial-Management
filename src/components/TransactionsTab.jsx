@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import EditTransactionModal from './modals/EditTransactionModal'
 import EditRecurringRuleModal from './modals/EditRecurringRuleModal'
+import { adjustRecurringDate, computeBillingDate, calculateEndDate } from '../lib/dateUtils'
 
 const loadPdfJs = () => {
   return new Promise((resolve, reject) => {
@@ -486,29 +487,12 @@ export default function TransactionsTab() {
       let adjustedDate = item.raw_date
       
       if (isRecurring && item.raw_date && newYear && newMonth) {
-        const [pYear, pMonth] = item.raw_date.split('-').map(Number)
-        if (pYear < newYear || (pYear === newYear && pMonth < newMonth)) {
-          const pDateObj = new Date(item.raw_date + 'T00:00:00')
-          const pDay = pDateObj.getDate()
-          
-          const billingDate = new Date(newYear, newMonth - 1, pDay)
-          if (billingDate.getMonth() !== newMonth - 1) {
-            const lastDay = new Date(newYear, newMonth, 0).getDate()
-            adjustedDate = `${newYear}-${String(newMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
-          } else {
-            adjustedDate = `${newYear}-${String(newMonth).padStart(2, '0')}-${String(pDay).padStart(2, '0')}`
-          }
-        }
+        adjustedDate = adjustRecurringDate(item.raw_date, newYear, newMonth)
       }
 
       let calculatedEndDate = null
       if (isRecurring && item.installments_total && item.installments_current) {
-        const monthsRemaining = item.installments_total - item.installments_current
-        if (monthsRemaining >= 0) {
-          const dateObj = new Date(adjustedDate + 'T00:00:00')
-          dateObj.setMonth(dateObj.getMonth() + monthsRemaining)
-          calculatedEndDate = dateObj.toISOString().split('T')[0]
-        }
+        calculatedEndDate = calculateEndDate(adjustedDate, item.installments_total, item.installments_current)
       }
 
       return {
@@ -672,32 +656,13 @@ Retorne estritamente um objeto JSON no seguinte formato:
         // ajustamos a data do item para o mês de referência da fatura, para evitar retroatividade duplicada.
         let adjustedDate = purchase.date
         if (isRecurring && purchase.date && referenceYear && referenceMonth) {
-          const [pYear, pMonth] = purchase.date.split('-').map(Number)
-          if (pYear < referenceYear || (pYear === referenceYear && pMonth < referenceMonth)) {
-            const pDateObj = new Date(purchase.date + 'T00:00:00')
-            const pDay = pDateObj.getDate()
-            
-            // Cria a data no ano e mês de referência da fatura
-            const billingDate = new Date(referenceYear, referenceMonth - 1, pDay)
-            // Valida estouro de dia (ex: 31 de abril vira 1 de maio)
-            if (billingDate.getMonth() !== referenceMonth - 1) {
-              const lastDay = new Date(referenceYear, referenceMonth, 0).getDate()
-              adjustedDate = `${referenceYear}-${String(referenceMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
-            } else {
-              adjustedDate = `${referenceYear}-${String(referenceMonth).padStart(2, '0')}-${String(pDay).padStart(2, '0')}`
-            }
-          }
+          adjustedDate = adjustRecurringDate(purchase.date, referenceYear, referenceMonth)
         }
 
         // Calcula a data de término do parcelamento se houver
         let calculatedEndDate = null
         if (isRecurring && purchase.installments_total && purchase.installments_current) {
-          const monthsRemaining = purchase.installments_total - purchase.installments_current
-          if (monthsRemaining >= 0) {
-            const dateObj = new Date(adjustedDate + 'T00:00:00')
-            dateObj.setMonth(dateObj.getMonth() + monthsRemaining)
-            calculatedEndDate = dateObj.toISOString().split('T')[0]
-          }
+          calculatedEndDate = calculateEndDate(adjustedDate, purchase.installments_total, purchase.installments_current)
         }
 
         return {
@@ -784,14 +749,7 @@ Retorne estritamente um objeto JSON no seguinte formato:
           // Calcula o billing_date baseado no mês de referência da fatura, mas mantendo o dia da compra original
           let computedBillingDate = item.date
           if (item.date && referenceYear && referenceMonth) {
-            const [pYear, pMonth, pDay] = item.date.split('-')
-            const billingDateObj = new Date(referenceYear, referenceMonth - 1, parseInt(pDay, 10))
-            if (billingDateObj.getMonth() !== referenceMonth - 1) {
-              const lastDay = new Date(referenceYear, referenceMonth, 0).getDate()
-              computedBillingDate = `${referenceYear}-${String(referenceMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
-            } else {
-              computedBillingDate = `${referenceYear}-${String(referenceMonth).padStart(2, '0')}-${pDay}`
-            }
+            computedBillingDate = computeBillingDate(item.date, referenceYear, referenceMonth)
           }
 
           await addTransaction({
