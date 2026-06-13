@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from './AuthContext'
 
@@ -717,7 +717,8 @@ export const FinancialProvider = ({ children }) => {
     }
   }, [user])
 
-  const value = {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const value = useMemo(() => ({
     transactions,
     categories,
     budgets,
@@ -752,7 +753,7 @@ export const FinancialProvider = ({ children }) => {
     deleteFamilyMember,
     updateFamilyMember,
     loadAllData
-  }
+  }), [transactions, categories, budgets, investments, savingGoals, recurringRules, familyMembers, loading])
 
   return (
     <FinancialContext.Provider value={value}>

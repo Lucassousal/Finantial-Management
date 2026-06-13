@@ -188,6 +188,18 @@ export default function AnalyticsTab() {
       Saldo: projectedBalance
     })
 
+    // O(N) Agrupamento: Lançamentos futuros por mês
+    const futureByMonth = {}
+    transactions.forEach(t => {
+      if (t.is_future) {
+        const monthStr = (t.billing_date || t.date).slice(0, 7)
+        if (!futureByMonth[monthStr]) futureByMonth[monthStr] = 0
+        const amt = parseFloat(t.amount)
+        if (t.type === 'income') futureByMonth[monthStr] += amt
+        else if (t.type === 'expense' || t.type === 'investment') futureByMonth[monthStr] -= amt
+      }
+    })
+
     // Projeta os próximos N meses
     for (let i = 1; i <= forecastMonths; i++) {
       const targetDate = new Date()
@@ -197,16 +209,8 @@ export default function AnalyticsTab() {
       const [y, m] = monthStr.split('-')
       const label = `${m}/${y}`
 
-      // A. Lançamentos Futuros agendados para este mês específico
-      const futureSum = transactions
-        .filter(t => t.is_future && (t.billing_date || t.date).startsWith(monthStr))
-        .reduce((sum, t) => {
-          const amt = parseFloat(t.amount)
-          if (t.type === 'income') return sum + amt
-          if (t.type === 'expense') return sum - amt
-          if (t.type === 'investment') return sum - amt // Aporte tira da liquidez da conta (não altera o patrimônio líquido total)
-          return sum
-        }, 0)
+      // A. Lançamentos Futuros agendados para este mês
+      const futureSum = futureByMonth[monthStr] || 0
 
       // B. Regras de Lançamentos Recorrentes aplicáveis neste período
       const recurringSum = recurringRules
@@ -237,6 +241,21 @@ export default function AnalyticsTab() {
   const expensesForecastData = useMemo(() => {
     const data = []
     
+    // O(N) Agrupamento: Despesas futuras por mês e categoria
+    const futureExpensesByMonth = {}
+    transactions.forEach(t => {
+      if (t.is_future && t.type === 'expense') {
+        const monthKey = (t.billing_date || t.date).slice(0, 7)
+        if (!futureExpensesByMonth[monthKey]) futureExpensesByMonth[monthKey] = {}
+        
+        const catName = t.categories?.name || 'Geral'
+        if (!futureExpensesByMonth[monthKey][catName]) {
+          futureExpensesByMonth[monthKey][catName] = 0
+        }
+        futureExpensesByMonth[monthKey][catName] += parseFloat(t.amount || 0)
+      }
+    })
+    
     // Obtém os próximos 4 meses (excluindo o mês atual)
     for (let i = 1; i <= 4; i++) {
       const date = new Date()
@@ -254,17 +273,16 @@ export default function AnalyticsTab() {
           monthData[cat.name] = 0
         })
         
-      // A. Lançamentos Futuros agendados para este mês específico
-      transactions
-        .filter(t => t.is_future && t.type === 'expense' && (t.billing_date || t.date).startsWith(monthKey))
-        .forEach(t => {
-          const catName = t.categories?.name || 'Geral'
+      // A. Lançamentos Futuros agendados para este mês
+      if (futureExpensesByMonth[monthKey]) {
+        Object.entries(futureExpensesByMonth[monthKey]).forEach(([catName, amount]) => {
           if (monthData[catName] !== undefined) {
-            monthData[catName] += parseFloat(t.amount || 0)
+            monthData[catName] += amount
           } else {
-            monthData[catName] = parseFloat(t.amount || 0)
+            monthData[catName] = amount
           }
         })
+      }
         
       // B. Regras de Lançamentos Recorrentes aplicáveis neste período
       recurringRules
