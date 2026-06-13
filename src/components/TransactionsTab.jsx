@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useFinancial } from '../context/FinancialContext'
 import { Button } from './ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
@@ -327,29 +327,44 @@ export default function TransactionsTab() {
   // Estados de Paginação e Filtro de Datas
   const [startDateFilter, setStartDateFilter] = useState('')
   const [endDateFilter, setEndDateFilter] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
+  const [searchFilter, setSearchFilter] = useState('')
+  const [refMonthFilter, setRefMonthFilter] = useState('')
+  const [visibleItemsCount, setVisibleItemsCount] = useState(30)
   const ITEMS_PER_PAGE = 30
 
-  // Filtra as transações por data
+  // Observador para o Scroll Infinito
+  const observer = useRef()
+  const lastElementRef = useCallback(node => {
+    if (observer.current) observer.current.disconnect()
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        setVisibleItemsCount(prev => prev + ITEMS_PER_PAGE)
+      }
+    })
+    if (node) observer.current.observe(node)
+  }, [])
+
+  // Filtra as transações por data, busca e mês de referência
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
       const targetDate = t.billing_date || t.date
       if (startDateFilter && targetDate < startDateFilter) return false
       if (endDateFilter && targetDate > endDateFilter) return false
+      
+      // Filtro de Busca (Descrição)
+      if (searchFilter && !t.description.toLowerCase().includes(searchFilter.toLowerCase())) return false
+
+      // Filtro de Mês de Referência (YYYY-MM)
+      if (refMonthFilter && !(t.billing_date || '').startsWith(refMonthFilter)) return false
+
       return true
     })
-  }, [transactions, startDateFilter, endDateFilter])
+  }, [transactions, startDateFilter, endDateFilter, searchFilter, refMonthFilter])
 
-  // Garante que a página atual é válida após filtragem
-  const totalPages = useMemo(() => Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE) || 1, [filteredTransactions.length])
-  const activePage = Math.min(currentPage, totalPages)
-  
+  // Fatiando as transações visíveis (Scroll Infinito)
   const paginatedTransactions = useMemo(() => {
-    return filteredTransactions.slice(
-      (activePage - 1) * ITEMS_PER_PAGE,
-      activePage * ITEMS_PER_PAGE
-    )
-  }, [filteredTransactions, activePage])
+    return filteredTransactions.slice(0, visibleItemsCount)
+  }, [filteredTransactions, visibleItemsCount])
 
   const handleStartEditRec = (rule) => {
     setRecurringRuleToEdit(rule)
@@ -1196,46 +1211,79 @@ Retorne estritamente um objeto JSON no seguinte formato:
             <div className="text-zinc-500 dark:text-zinc-400 text-center py-6">Nenhuma transação encontrada.</div>
           ) : (
             <div className="space-y-4">
-              {/* Filtros de Data */}
-              <div className="flex flex-wrap items-center gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">De:</span>
-                  <Input 
-                    type="date"
-                    value={startDateFilter}
-                    onChange={(e) => {
-                      setStartDateFilter(e.target.value)
-                      setCurrentPage(1)
-                    }}
-                    className="w-40 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
-                  />
+              {/* Filtros de Tabela */}
+              <div className="flex flex-col gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
+                {/* Linha Superior: Busca e Mês de Referência */}
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex-1 min-w-[200px]">
+                    <Input 
+                      type="text"
+                      placeholder="Buscar por descrição..."
+                      value={searchFilter}
+                      onChange={(e) => {
+                        setSearchFilter(e.target.value)
+                        setVisibleItemsCount(ITEMS_PER_PAGE)
+                      }}
+                      className="h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Fatura:</span>
+                    <Input 
+                      type="month"
+                      value={refMonthFilter}
+                      onChange={(e) => {
+                        setRefMonthFilter(e.target.value)
+                        setVisibleItemsCount(ITEMS_PER_PAGE)
+                      }}
+                      className="w-40 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Até:</span>
-                  <Input 
-                    type="date"
-                    value={endDateFilter}
-                    onChange={(e) => {
-                      setEndDateFilter(e.target.value)
-                      setCurrentPage(1)
-                    }}
-                    className="w-40 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
-                  />
+
+                {/* Linha Inferior: Filtro de Datas Livres e Botão Limpar */}
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">De:</span>
+                    <Input 
+                      type="date"
+                      value={startDateFilter}
+                      onChange={(e) => {
+                        setStartDateFilter(e.target.value)
+                        setVisibleItemsCount(ITEMS_PER_PAGE)
+                      }}
+                      className="w-40 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Até:</span>
+                    <Input 
+                      type="date"
+                      value={endDateFilter}
+                      onChange={(e) => {
+                        setEndDateFilter(e.target.value)
+                        setVisibleItemsCount(ITEMS_PER_PAGE)
+                      }}
+                      className="w-40 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                    />
+                  </div>
+                  {(startDateFilter || endDateFilter || searchFilter || refMonthFilter) && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        setStartDateFilter('')
+                        setEndDateFilter('')
+                        setSearchFilter('')
+                        setRefMonthFilter('')
+                        setVisibleItemsCount(ITEMS_PER_PAGE)
+                      }}
+                      className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+                    >
+                      Limpar Filtros
+                    </Button>
+                  )}
                 </div>
-                {(startDateFilter || endDateFilter) && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => {
-                      setStartDateFilter('')
-                      setEndDateFilter('')
-                      setCurrentPage(1)
-                    }}
-                    className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
-                  >
-                    Limpar Filtros
-                  </Button>
-                )}
               </div>
 
               {filteredTransactions.length === 0 ? (
@@ -1312,34 +1360,19 @@ Retorne estritamente um objeto JSON no seguinte formato:
                     </Table>
                   </div>
 
-                  {/* Controles de Paginação */}
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-between border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-4">
-                      <span className="text-sm text-zinc-500 dark:text-zinc-400">
-                        Mostrando {paginatedTransactions.length} de {filteredTransactions.length} transações (Página {activePage} de {totalPages})
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                          disabled={activePage === 1}
-                          className="cursor-pointer"
-                        >
-                          Anterior
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                          disabled={activePage === totalPages}
-                          className="cursor-pointer"
-                        >
-                          Próximo
-                        </Button>
-                      </div>
+                  {/* Fim da Tabela e Observador de Scroll */}
+                  {visibleItemsCount < filteredTransactions.length && (
+                    <div ref={lastElementRef} className="py-4 text-center text-sm text-zinc-500 dark:text-zinc-400">
+                      Carregando mais transações...
                     </div>
                   )}
+
+                  {/* Sumário */}
+                  <div className="flex items-center justify-between border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-4">
+                    <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                      Mostrando {paginatedTransactions.length} de {filteredTransactions.length} transações
+                    </span>
+                  </div>
                 </>
               )}
             </div>
