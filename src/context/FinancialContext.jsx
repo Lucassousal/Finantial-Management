@@ -401,16 +401,24 @@ export const FinancialProvider = ({ children }) => {
     const newTransactionsToInsert = []
 
     for (const rule of currentRules) {
-      const startDate = new Date(rule.start_date)
-      const endDate = rule.end_date ? new Date(rule.end_date) : null
+      if (!rule.start_date) continue
+      
+      const [sYear, sMonth, sDay] = rule.start_date.split('-').map(Number)
+      const startYear = sYear
+      const startMonth = sMonth - 1 // 0-11
+      const startDay = sDay
 
-      const startYear = startDate.getFullYear()
-      const startMonth = startDate.getMonth()
-      const startDay = startDate.getDate()
+      let limitYear = currentYear
+      let limitMonth = currentMonth
 
-      const limitDate = (endDate && endDate < today) ? endDate : today
-      const limitYear = limitDate.getFullYear()
-      const limitMonth = limitDate.getMonth()
+      if (rule.end_date) {
+        const [eYear, eMonth, eDay] = rule.end_date.split('-').map(Number)
+        // Se a data final for menor que o mês atual, limitamos a geração até lá
+        if (eYear < currentYear || (eYear === currentYear && eMonth - 1 < currentMonth)) {
+          limitYear = eYear
+          limitMonth = eMonth - 1
+        }
+      }
 
       // Total de meses de diferença
       const diffMonths = (limitYear - startYear) * 12 + (limitMonth - startMonth)

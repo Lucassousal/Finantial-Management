@@ -1,11 +1,12 @@
 import React from 'react'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { FinancialProvider, useFinancial } from '../FinancialContext'
 import { supabase } from '../../lib/supabaseClient'
 
+const mockUser = { id: 'test-user-id' }
 vi.mock('../AuthContext', () => ({
-  useAuth: () => ({ user: { id: 'test-user-id' } }),
+  useAuth: () => ({ user: mockUser }),
   AuthProvider: ({ children }) => <>{children}</>
 }))
 
@@ -20,7 +21,7 @@ const createChain = () => {
     delete: vi.fn(() => chain),
     eq: vi.fn(() => chain),
     order: vi.fn(() => chain),
-    then: (resolve) => resolve({ data: mockData, error: mockError })
+    then: function(resolve) { return Promise.resolve({ data: mockData, error: mockError }).then(resolve) }
   }
   return chain
 }
@@ -48,13 +49,15 @@ const TestComponent = () => {
 describe('FinancialContext - Lógica de Negócio (Mocks)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockData = [{ id: '99', name: 'Dummy' }] // Para não disparar o seed das categorias
+    mockData = [{ id: '99', name: 'Dummy', start_date: '2026-05-01', date: '2026-05-01', installments_total: 10, installments_current: 1 }]
     mockError = null
   })
 
   it('deve buscar transações', async () => {
     render(<FinancialProvider><TestComponent /></FinancialProvider>)
-    await act(async () => { await new Promise(r => setTimeout(r, 10)) })
-    expect(screen.getByTestId('transactions-count').textContent).toBe('1')
+    
+    await waitFor(() => {
+      expect(screen.getByTestId('transactions-count').textContent).toBe('2')
+    })
   })
 })

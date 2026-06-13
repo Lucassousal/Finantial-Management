@@ -55,3 +55,14 @@ export function calculateEndDate(startDate, installmentsTotal, installmentsCurre
   
   return `${endYear}-${String(endMonth + 1).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
 }
+
+/**
+ * Formata a data (YYYY-MM-DD) para o padrão BR (DD/MM/YYYY) de forma segura,
+ * evitando problemas de fuso horário causados pelo construtor new Date().
+ */
+export function formatDateBR(dateStr) {
+  if (!dateStr) return '';
+  const parts = dateStr.split('T')[0].split('-');
+  if (parts.length !== 3) return dateStr;
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}

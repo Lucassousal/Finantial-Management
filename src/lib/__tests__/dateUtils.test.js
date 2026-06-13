@@ -59,4 +59,19 @@ describe('Date Utilities (Fase 4 QA)', () => {
       expect(calculateEndDate('2026-01-01', 5, 6)).toBeNull() // Parcela atual maior que a total
     })
   })
+
+  describe('formatDateBR', () => {
+    it('deve formatar corretamente uma data YYYY-MM-DD para DD/MM/YYYY', () => {
+      const { formatDateBR } = require('../dateUtils')
+      expect(formatDateBR('2026-04-30')).toBe('30/04/2026')
+      expect(formatDateBR('2026-05-01')).toBe('01/05/2026')
+    })
+
+    it('não deve sofrer alteração de fuso horário (timezone shift)', () => {
+      const { formatDateBR } = require('../dateUtils')
+      // Se usássemos new Date('2026-05-01') no Brasil, viraria 30/04/2026.
+      // O formatDateBR deve garantir que 2026-05-01 permaneça dia 01.
+      expect(formatDateBR('2026-05-01')).toBe('01/05/2026')
+    })
+  })
 })

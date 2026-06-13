@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import EditTransactionModal from './modals/EditTransactionModal'
 import EditRecurringRuleModal from './modals/EditRecurringRuleModal'
-import { adjustRecurringDate, computeBillingDate, calculateEndDate } from '../lib/dateUtils'
+import { adjustRecurringDate, computeBillingDate, calculateEndDate, formatDateBR } from '../lib/dateUtils'
 
 const loadPdfJs = () => {
   return new Promise((resolve, reject) => {
@@ -1087,8 +1087,8 @@ Retorne estritamente um objeto JSON no seguinte formato:
                           </TableCell>
                           <TableCell className="text-zinc-800 dark:text-zinc-300">{rule.family_members?.name || '-'}</TableCell>
                           <TableCell className="text-xs text-zinc-500 dark:text-zinc-400">
-                            De {new Date(rule.start_date).toLocaleDateString('pt-BR')} 
-                            {rule.end_date ? ` até ${new Date(rule.end_date).toLocaleDateString('pt-BR')}` : ' (Indeterminado)'}
+                            De {formatDateBR(rule.start_date)} 
+                            {rule.end_date ? ` até ${formatDateBR(rule.end_date)}` : ' (Indeterminado)'}
                           </TableCell>
                           <TableCell className={`text-right font-semibold ${rule.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                             {formatCurrency(rule.amount)}
@@ -1157,7 +1157,7 @@ Retorne estritamente um objeto JSON no seguinte formato:
                           </TableCell>
                           <TableCell className="text-zinc-800 dark:text-zinc-300">{rule.family_members?.name || '-'}</TableCell>
                           <TableCell className="text-xs text-zinc-500 dark:text-zinc-400">
-                            De {new Date(rule.start_date).toLocaleDateString('pt-BR')} até {new Date(rule.end_date).toLocaleDateString('pt-BR')}
+                            De {formatDateBR(rule.start_date)} até {formatDateBR(rule.end_date)}
                           </TableCell>
                           <TableCell className={`text-right font-semibold ${rule.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} grayscale`}>
                             {formatCurrency(rule.amount)}
@@ -1281,7 +1281,7 @@ Retorne estritamente um objeto JSON no seguinte formato:
                                 {t.categories?.name || 'Geral'}
                               </span>
                             </TableCell>
-                            <TableCell>{new Date(t.date).toLocaleDateString('pt-BR')}</TableCell>
+                            <TableCell>{formatDateBR(t.date)}</TableCell>
                             <TableCell className="text-xs capitalize text-zinc-500 dark:text-zinc-400">
                               {t.type === 'income' ? 'Receita' : t.type === 'investment' ? 'Aporte' : 'Despesa'}
                             </TableCell>

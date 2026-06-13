@@ -45,11 +45,11 @@ export default function Dashboard() {
   // CÁLCULOS DO DASHBOARD (VISÃO GERAL)
   // ==========================================
   const totalIncome = transactions
-    .filter(t => t.type === 'income' && t.date.startsWith(selectedMonth))
+    .filter(t => t.type === 'income' && (t.billing_date || t.date).startsWith(selectedMonth))
     .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
 
   const totalExpense = transactions
-    .filter(t => t.type === 'expense' && t.date.startsWith(selectedMonth))
+    .filter(t => t.type === 'expense' && (t.billing_date || t.date).startsWith(selectedMonth))
     .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
 
   const totalInvested = investments
@@ -69,7 +69,7 @@ export default function Dashboard() {
 
   const getAmountSpentForCategory = (catId, budgetMonth) => {
     return transactions
-      .filter((t) => t.category_id === catId && t.type === 'expense' && t.date.startsWith(budgetMonth))
+      .filter((t) => t.category_id === catId && t.type === 'expense' && (t.billing_date || t.date).startsWith(budgetMonth))
       .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
   }
 
@@ -303,12 +303,12 @@ export default function Dashboard() {
               <CardDescription className="text-zinc-500 dark:text-zinc-400">Transações e aportes recentes no banco de dados.</CardDescription>
             </CardHeader>
             <CardContent>
-              {transactions.filter(t => t.date.startsWith(selectedMonth)).length === 0 ? (
+              {transactions.filter(t => (t.billing_date || t.date).startsWith(selectedMonth)).length === 0 ? (
                 <p className="text-zinc-500 text-sm text-center py-4">Nenhuma movimentação lançada neste mês.</p>
               ) : (
                 <div className="space-y-3">
                   {transactions
-                    .filter(t => t.date.startsWith(selectedMonth))
+                    .filter(t => (t.billing_date || t.date).startsWith(selectedMonth))
                     .slice(0, 5)
                     .map(t => (
                       <div key={t.id} className="flex justify-between items-center p-2 rounded bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-sm">
