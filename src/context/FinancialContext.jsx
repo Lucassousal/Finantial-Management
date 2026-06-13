@@ -69,9 +69,14 @@ export const FinancialProvider = ({ children }) => {
   const addTransaction = async (newTransaction) => {
     if (!user) return
     try {
+      const payload = {
+        ...newTransaction,
+        billing_date: newTransaction.billing_date || newTransaction.date,
+        user_id: user.id
+      }
       const { data, error } = await supabase
         .from('transactions')
-        .insert([{ ...newTransaction, user_id: user.id }])
+        .insert([payload])
         .select('*, categories(name, color), family_members(name)')
 
       if (error) throw error
@@ -435,6 +440,7 @@ export const FinancialProvider = ({ children }) => {
             type: rule.type,
             category_id: rule.category_id,
             date: targetDateStr,
+            billing_date: targetDateStr,
             family_member_id: rule.family_member_id || null,
             is_recurring: true,
             recurring_rule_id: rule.id,
@@ -517,9 +523,13 @@ export const FinancialProvider = ({ children }) => {
 
   const updateTransaction = async (id, updatedTransaction) => {
     try {
+      const payload = {
+        ...updatedTransaction,
+        billing_date: updatedTransaction.billing_date || updatedTransaction.date
+      }
       const { data, error } = await supabase
         .from('transactions')
-        .update(updatedTransaction)
+        .update(payload)
         .eq('id', id)
         .select('*, categories(name, color), family_members(name)')
       if (error) throw error

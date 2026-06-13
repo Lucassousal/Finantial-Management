@@ -332,8 +332,9 @@ export default function TransactionsTab() {
   // Filtra as transações por data
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
-      if (startDateFilter && t.date < startDateFilter) return false
-      if (endDateFilter && t.date > endDateFilter) return false
+      const targetDate = t.billing_date || t.date
+      if (startDateFilter && targetDate < startDateFilter) return false
+      if (endDateFilter && targetDate > endDateFilter) return false
       return true
     })
   }, [transactions, startDateFilter, endDateFilter])
@@ -780,12 +781,26 @@ Retorne estritamente um objeto JSON no seguinte formato:
           })
         } else {
           // Cadastra como transação comum
+          // Calcula o billing_date baseado no mês de referência da fatura, mas mantendo o dia da compra original
+          let computedBillingDate = item.date
+          if (item.date && referenceYear && referenceMonth) {
+            const [pYear, pMonth, pDay] = item.date.split('-')
+            const billingDateObj = new Date(referenceYear, referenceMonth - 1, parseInt(pDay, 10))
+            if (billingDateObj.getMonth() !== referenceMonth - 1) {
+              const lastDay = new Date(referenceYear, referenceMonth, 0).getDate()
+              computedBillingDate = `${referenceYear}-${String(referenceMonth).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+            } else {
+              computedBillingDate = `${referenceYear}-${String(referenceMonth).padStart(2, '0')}-${pDay}`
+            }
+          }
+
           await addTransaction({
             description: item.description,
             amount: item.amount,
             type: 'expense',
             category_id: item.category_id || null,
-            date: item.date,
+            date: item.date, // Data original da compra
+            billing_date: computedBillingDate, // Mês da fatura
             family_member_id: item.family_member_id || null,
             is_future: false,
             statement_name: item.original_name,

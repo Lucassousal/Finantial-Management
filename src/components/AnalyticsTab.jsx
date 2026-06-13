@@ -57,7 +57,8 @@ export default function AnalyticsTab() {
 
         // Agrupa o saldo acumulado por data
         const grouped = data.reduce((acc, curr) => {
-          const key = curr.date
+          const targetDate = curr.billing_date || curr.date
+        const key = targetDate
           if (!acc[key]) {
             acc[key] = { date: new Date(key).toLocaleDateString('pt-BR'), total: 0 }
           }
@@ -146,7 +147,8 @@ export default function AnalyticsTab() {
 
     transactions.forEach(t => {
       if (t.type === 'expense') {
-        const monthKey = t.date.slice(0, 7)
+        const targetDate = t.billing_date || t.date
+        const monthKey = targetDate.slice(0, 7)
         const catName = t.categories?.name
         if (monthlyMap[monthKey] && selectedCats.includes(catName)) {
           monthlyMap[monthKey][catName] += parseFloat(t.amount)
@@ -197,7 +199,7 @@ export default function AnalyticsTab() {
 
       // A. Lançamentos Futuros agendados para este mês específico
       const futureSum = transactions
-        .filter(t => t.is_future && t.date.startsWith(monthStr))
+        .filter(t => t.is_future && (t.billing_date || t.date).startsWith(monthStr))
         .reduce((sum, t) => {
           const amt = parseFloat(t.amount)
           if (t.type === 'income') return sum + amt
@@ -254,7 +256,7 @@ export default function AnalyticsTab() {
         
       // A. Lançamentos Futuros agendados para este mês específico
       transactions
-        .filter(t => t.is_future && t.type === 'expense' && t.date.startsWith(monthKey))
+        .filter(t => t.is_future && t.type === 'expense' && (t.billing_date || t.date).startsWith(monthKey))
         .forEach(t => {
           const catName = t.categories?.name || 'Geral'
           if (monthData[catName] !== undefined) {
