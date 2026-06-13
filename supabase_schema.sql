@@ -57,7 +57,7 @@ create table if not exists public.transactions (
 );
 
 -- Garante a idempotência das transações recorrentes geradas automaticamente
-alter table public.transactions add constraint unique_recurring_transaction unique nulls not distinct (recurring_rule_id, date);
+alter table public.transactions add constraint unique_recurring_transaction unique (recurring_rule_id, date);
 
 -- 4. Tabela de Controle de Investimentos (Saldos Atuais)
 create table if not exists public.investments (
