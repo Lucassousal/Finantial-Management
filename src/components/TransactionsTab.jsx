@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Plus, Trash2, Calendar, User, Tag, Clock, FileText, Edit2 } from 'lucide-react'
 import { formatCurrencyInput, parseCurrencyToNumber } from '../lib/utils'
 import { ConfirmDialog } from './ui/confirm-dialog'
@@ -1052,69 +1053,143 @@ Retorne estritamente um objeto JSON no seguinte formato:
           </form>
 
           {/* Listagem de Recorrências Cadastradas */}
-          <div className="lg:col-span-2 overflow-x-auto">
-            <Table className="text-zinc-750 dark:text-zinc-200">
-              <TableHeader className="border-zinc-200 dark:border-zinc-800">
-                <TableRow className="border-zinc-200 dark:border-zinc-800 hover:bg-transparent">
-                  <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Descrição</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Categoria</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Responsável</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Período</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium text-right">Valor Mensal</TableHead>
-                  <TableHead className="w-10"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recurringRules.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-zinc-500 text-center py-6">Nenhum lançamento recorrente configurado.</TableCell>
-                  </TableRow>
-                ) : (
-                  recurringRules.map((rule) => (
-                    <TableRow key={rule.id} className="border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40">
-                      <TableCell className="font-medium text-zinc-900 dark:text-white">{rule.description}</TableCell>
-                      <TableCell>
-                        <span 
-                          className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                          style={{ 
-                            backgroundColor: (rule.categories?.color || '#3f3f46') + '15',
-                            color: rule.categories?.color || '#a1a1aa'
-                          }}
-                        >
-                          {rule.categories?.name || 'Geral'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-zinc-800 dark:text-zinc-300">{rule.family_members?.name || '-'}</TableCell>
-                      <TableCell className="text-xs text-zinc-500 dark:text-zinc-400">
-                        De {new Date(rule.start_date).toLocaleDateString('pt-BR')} 
-                        {rule.end_date ? ` até ${new Date(rule.end_date).toLocaleDateString('pt-BR')}` : ' (Indeterminado)'}
-                      </TableCell>
-                      <TableCell className={`text-right font-semibold ${rule.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                        {formatCurrency(rule.amount)}
-                      </TableCell>
-                      <TableCell>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => handleStartEditRec(rule)}
-                          className="text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 mr-1"
-                        >
-                          <Edit2 size={16} />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => confirmDeleteRec(rule.id, rule.description, rule.amount)}
-                          className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-200 dark:hover:bg-zinc-800"
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </TableCell>
+          <div className="lg:col-span-2 overflow-x-auto mt-2">
+            <Tabs defaultValue="ativos" className="w-full">
+              <TabsList className="mb-4 bg-zinc-100 dark:bg-zinc-900">
+                <TabsTrigger value="ativos" className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800">
+                  Regras Ativas
+                </TabsTrigger>
+                <TabsTrigger value="concluidos" className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800">
+                  Concluídas / Encerradas
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="ativos">
+                <Table className="text-zinc-750 dark:text-zinc-200">
+                  <TableHeader className="border-zinc-200 dark:border-zinc-800">
+                    <TableRow className="border-zinc-200 dark:border-zinc-800 hover:bg-transparent">
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Descrição</TableHead>
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Categoria</TableHead>
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Responsável</TableHead>
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Período</TableHead>
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium text-right">Valor Mensal</TableHead>
+                      <TableHead className="w-10"></TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {recurringRules.filter(r => !r.end_date || r.end_date >= new Date().toISOString().split('T')[0]).length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-zinc-500 text-center py-6">Nenhum lançamento recorrente ativo.</TableCell>
+                      </TableRow>
+                    ) : (
+                      recurringRules.filter(r => !r.end_date || r.end_date >= new Date().toISOString().split('T')[0]).map((rule) => (
+                        <TableRow key={rule.id} className="border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40">
+                          <TableCell className="font-medium text-zinc-900 dark:text-white">{rule.description}</TableCell>
+                          <TableCell>
+                            <span 
+                              className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
+                              style={{ 
+                                backgroundColor: (rule.categories?.color || '#3f3f46') + '15',
+                                color: rule.categories?.color || '#a1a1aa'
+                              }}
+                            >
+                              {rule.categories?.name || 'Geral'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-zinc-800 dark:text-zinc-300">{rule.family_members?.name || '-'}</TableCell>
+                          <TableCell className="text-xs text-zinc-500 dark:text-zinc-400">
+                            De {new Date(rule.start_date).toLocaleDateString('pt-BR')} 
+                            {rule.end_date ? ` até ${new Date(rule.end_date).toLocaleDateString('pt-BR')}` : ' (Indeterminado)'}
+                          </TableCell>
+                          <TableCell className={`text-right font-semibold ${rule.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                            {formatCurrency(rule.amount)}
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => handleStartEditRec(rule)}
+                              className="text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 mr-1"
+                            >
+                              <Edit2 size={16} />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => confirmDeleteRec(rule.id, rule.description, rule.amount)}
+                              className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+
+              <TabsContent value="concluidos">
+                <Table className="text-zinc-750 dark:text-zinc-200">
+                  <TableHeader className="border-zinc-200 dark:border-zinc-800">
+                    <TableRow className="border-zinc-200 dark:border-zinc-800 hover:bg-transparent">
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Descrição</TableHead>
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Categoria</TableHead>
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Responsável</TableHead>
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Período</TableHead>
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium text-right">Valor Mensal</TableHead>
+                      <TableHead className="w-10"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {recurringRules.filter(r => r.end_date && r.end_date < new Date().toISOString().split('T')[0]).length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-zinc-500 text-center py-6">Nenhuma regra de recorrência encerrada.</TableCell>
+                      </TableRow>
+                    ) : (
+                      recurringRules.filter(r => r.end_date && r.end_date < new Date().toISOString().split('T')[0]).map((rule) => (
+                        <TableRow key={rule.id} className="border-zinc-200 dark:border-zinc-800 opacity-60 bg-zinc-50/30 dark:bg-zinc-950/30">
+                          <TableCell className="font-medium text-zinc-900 dark:text-white">
+                            {rule.description}
+                            <span className="ml-2 inline-flex items-center rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-medium text-rose-600 dark:text-rose-400 ring-1 ring-inset ring-rose-500/20">
+                              Encerrado
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span 
+                              className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold grayscale"
+                              style={{ 
+                                backgroundColor: (rule.categories?.color || '#3f3f46') + '15',
+                                color: rule.categories?.color || '#a1a1aa'
+                              }}
+                            >
+                              {rule.categories?.name || 'Geral'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-zinc-800 dark:text-zinc-300">{rule.family_members?.name || '-'}</TableCell>
+                          <TableCell className="text-xs text-zinc-500 dark:text-zinc-400">
+                            De {new Date(rule.start_date).toLocaleDateString('pt-BR')} até {new Date(rule.end_date).toLocaleDateString('pt-BR')}
+                          </TableCell>
+                          <TableCell className={`text-right font-semibold ${rule.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} grayscale`}>
+                            {formatCurrency(rule.amount)}
+                          </TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => confirmDeleteRec(rule.id, rule.description, rule.amount)}
+                              className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-200 dark:hover:bg-zinc-800"
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TabsContent>
+            </Tabs>
           </div>
         </CardContent>
       </Card>
