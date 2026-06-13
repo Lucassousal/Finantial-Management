@@ -56,6 +56,9 @@ create table if not exists public.transactions (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- Garante a idempotência das transações recorrentes geradas automaticamente
+alter table public.transactions add constraint unique_recurring_transaction unique nulls not distinct (recurring_rule_id, date);
+
 -- 4. Tabela de Controle de Investimentos (Saldos Atuais)
 create table if not exists public.investments (
   id uuid default gen_random_uuid() primary key,

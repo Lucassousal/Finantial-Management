@@ -24,4 +24,5 @@ dist-ssr
 *.sw?
 
 # AI Context
+.ai-context/plans/
 .ai-context/

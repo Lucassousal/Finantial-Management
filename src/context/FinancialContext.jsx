@@ -458,7 +458,16 @@ export const FinancialProvider = ({ children }) => {
           .from('transactions')
           .insert(newTransactionsToInsert)
           .select('*, categories(name, color), family_members(name)')
-        if (error) throw error
+          
+        if (error) {
+          // 23505 = unique_violation. Significa que outra sessão/dispositivo inseriu as faturas ao mesmo tempo
+          if (error.code === '23505') {
+            console.warn('Transações recorrentes geradas por outra sessão. Sincronizando...')
+            await fetchTransactions()
+            return
+          }
+          throw error
+        }
 
         if (data && data.length > 0) {
           setTransactions(prev => [...data, ...prev].sort((a, b) => b.date.localeCompare(a.date)))
