@@ -8,6 +8,7 @@ const FinancialContext = createContext({
   budgets: [],
   investments: [],
   savingGoals: [],
+  goalDeposits: [],
   recurringRules: [],
   loading: false,
   fetchTransactions: () => Promise.resolve(),
@@ -45,6 +46,7 @@ export const FinancialProvider = ({ children }) => {
   const [budgets, setBudgets] = useState([])
   const [investments, setInvestments] = useState([])
   const [savingGoals, setSavingGoals] = useState([])
+  const [goalDeposits, setGoalDeposits] = useState([])
   const [recurringRules, setRecurringRules] = useState([])
   const [familyMembers, setFamilyMembers] = useState([])
   const [loading, setLoading] = useState(false)
@@ -300,6 +302,20 @@ export const FinancialProvider = ({ children }) => {
     }
   }
 
+  const fetchGoalDeposits = async () => {
+    if (!user) return
+    try {
+      const { data, error } = await supabase
+        .from('goal_deposits')
+        .select('*')
+        .order('deposit_date', { ascending: false })
+      if (error) throw error
+      setGoalDeposits(data || [])
+    } catch (err) {
+      console.error('Erro ao buscar depósitos de metas:', err.message)
+    }
+  }
+
   const addSavingGoal = async (goal) => {
     if (!user) return
     try {
@@ -330,7 +346,7 @@ export const FinancialProvider = ({ children }) => {
     }
   }
 
-  const updateSavingGoalAmount = async (id, newAmount) => {
+  const updateSavingGoalAmount = async (id, newAmount, depositAmount = 0, depositDate = null) => {
     try {
       const { error } = await supabase
         .from('saving_goals')
@@ -338,6 +354,21 @@ export const FinancialProvider = ({ children }) => {
         .eq('id', id)
       if (error) throw error
       setSavingGoals(prev => prev.map(g => g.id === id ? { ...g, current_amount: newAmount } : g))
+
+      if (depositAmount > 0) {
+        const { data: depositData, error: depositError } = await supabase
+          .from('goal_deposits')
+          .insert([{
+            goal_id: id,
+            user_id: user.id,
+            amount: depositAmount,
+            deposit_date: depositDate || new Date().toISOString().split('T')[0]
+          }])
+          .select()
+        if (!depositError && depositData) {
+          setGoalDeposits(prev => [depositData[0], ...prev])
+        }
+      }
     } catch (err) {
       console.error('Erro ao atualizar valor da meta:', err.message)
       throw err
@@ -691,14 +722,15 @@ export const FinancialProvider = ({ children }) => {
   const loadAllData = async () => {
     setLoading(true)
     try {
-      const [cats, trans, bgts, invs, goals, rules, members] = await Promise.all([
+      const [cats, trans, bgts, invs, goals, rules, members, deposits] = await Promise.all([
         fetchCategories(),
         fetchTransactions(),
         fetchBudgets(),
         fetchInvestments(),
         fetchSavingGoals(),
         fetchRecurringRules(),
-        fetchFamilyMembers()
+        fetchFamilyMembers(),
+        fetchGoalDeposits()
       ])
 
       if (trans && rules) {
@@ -732,6 +764,7 @@ export const FinancialProvider = ({ children }) => {
     budgets,
     investments,
     savingGoals,
+    goalDeposits,
     recurringRules,
     familyMembers,
     loading,
@@ -753,6 +786,7 @@ export const FinancialProvider = ({ children }) => {
     deleteSavingGoal,
     updateSavingGoal,
     updateSavingGoalAmount,
+    fetchGoalDeposits,
     addRecurringRule,
     deleteRecurringRule,
     updateRecurringRule,
@@ -761,7 +795,7 @@ export const FinancialProvider = ({ children }) => {
     deleteFamilyMember,
     updateFamilyMember,
     loadAllData
-  }), [transactions, categories, budgets, investments, savingGoals, recurringRules, familyMembers, loading])
+  }), [transactions, categories, budgets, investments, savingGoals, goalDeposits, recurringRules, familyMembers, loading])
 
   return (
     <FinancialContext.Provider value={value}>

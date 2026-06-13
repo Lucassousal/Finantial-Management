@@ -68,6 +68,7 @@ export default function GoalsTab() {
   // Estados Aporte de Meta
   const [selectedGoalId, setSelectedGoalId] = useState('')
   const [depositAmount, setDepositAmount] = useState('')
+  const [depositDate, setDepositDate] = useState(() => new Date().toISOString().split('T')[0])
   const [submittingDeposit, setSubmittingDeposit] = useState(false)
 
   // Estados de confirmação de exclusão
@@ -129,9 +130,10 @@ export default function GoalsTab() {
       const goal = savingGoals.find(g => g.id === selectedGoalId)
       if (goal) {
         const newTotal = parseFloat(goal.current_amount || 0) + parseCurrencyToNumber(depositAmount)
-        await updateSavingGoalAmount(selectedGoalId, newTotal)
+        await updateSavingGoalAmount(selectedGoalId, newTotal, parseCurrencyToNumber(depositAmount), depositDate)
         setDepositAmount('')
         setSelectedGoalId('')
+        setDepositDate(new Date().toISOString().split('T')[0])
       }
     } catch (err) {
       console.error(err)
@@ -225,6 +227,17 @@ export default function GoalsTab() {
                   onChange={(e) => setDepositAmount(formatCurrencyInput(e.target.value))} 
                   placeholder="R$ 0,00"
                   required 
+                  className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Data do Depósito</label>
+                <Input 
+                  type="date"
+                  value={depositDate} 
+                  onChange={(e) => setDepositDate(e.target.value)} 
+                  required
                   className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
                 />
               </div>

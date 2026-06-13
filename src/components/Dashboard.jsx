@@ -34,7 +34,7 @@ const SettingsTab = lazy(() => import('./SettingsTab'))
 export default function Dashboard() {
   const { user, signOut } = useAuth()
   const { theme, toggleTheme } = useTheme()
-  const { transactions, investments, budgets, savingGoals, loading } = useFinancial()
+  const { transactions, investments, budgets, savingGoals, goalDeposits = [], loading } = useFinancial()
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7)) // 'YYYY-MM'
 
   const formatCurrency = (val) => {
@@ -66,6 +66,25 @@ export default function Dashboard() {
 
   // Patrimônio líquido total = Dinheiro em conta + Valor Investido
   const netWorth = totalContas + totalInvested
+
+  const monthlyBalance = totalIncome - totalExpense
+
+  
+  // Cálculos de Metas Consolidadas e Mensais
+  const activeConsolidatedGoals = savingGoals.filter(g => !g.target_date || g.target_date >= new Date().toISOString().split('T')[0]);
+  
+  const activeGoalsForMonth = savingGoals.filter(g => {
+    const isNotExpired = !g.target_date || g.target_date >= `${selectedMonth}-01`;
+    const createdMonth = g.created_at ? g.created_at.substring(0, 7) : '';
+    const isCreatedBeforeOrDuring = !createdMonth || createdMonth <= selectedMonth;
+    return isNotExpired && isCreatedBeforeOrDuring;
+  });
+
+  const getDepositsForGoal = (goalId, month) => {
+    return goalDeposits
+      .filter(d => d.goal_id === goalId && d.deposit_date && d.deposit_date.startsWith(month))
+      .reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
+  };
 
   const getAmountSpentForCategory = (catId, budgetMonth) => {
     return transactions
@@ -154,78 +173,150 @@ export default function Dashboard() {
         {/* ==========================================
             ABA 1: VISÃO GERAL (RESUMO RÁPIDO)
             ========================================== */}
-        <TabsContent value="overview" className="space-y-6 outline-none">
-          {/* Seletor de Período Mensal */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-lg shadow-sm">
-            <div>
-              <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Período de Referência</h3>
-              <p className="text-xs text-zinc-500 dark:text-zinc-400">Selecione o mês para filtrar receitas, despesas e limites de orçamentos da visão geral.</p>
+        <TabsContent value="overview" className="space-y-8 outline-none">
+          
+          {/* SEÇÃO 1: PATRIMÔNIO CONSOLIDADO (GLOBAL) */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
+              <Wallet className="h-5 w-5 text-indigo-500" />
+              Patrimônio Consolidado
+            </h3>
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Saldo em Contas</CardTitle>
+                  <PiggyBank className="text-emerald-500 h-4 w-4" />
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${totalContas >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-500 dark:text-rose-400'}`}>
+                    {formatCurrency(totalContas)}
+                  </div>
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Dinheiro disponível (Receitas - Despesas)</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Total Investido</CardTitle>
+                  <LineChart className="text-indigo-500 h-4 w-4" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-indigo-500 dark:text-indigo-400">
+                    {formatCurrency(totalInvested)}
+                  </div>
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Alocado em renda fixa e variável</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-400/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+                <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
+                  <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Patrimônio Líquido</CardTitle>
+                  <Wallet className="text-indigo-500 h-4 w-4" />
+                </CardHeader>
+                <CardContent className="relative z-10">
+                  <div className={`text-2xl font-bold ${netWorth >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-500 dark:text-rose-400'}`}>
+                    {formatCurrency(netWorth)}
+                  </div>
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Soma de todo o seu capital</p>
+                </CardContent>
+              </Card>
             </div>
-            <div className="flex items-center gap-2">
-              <label htmlFor="dashboard-month" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">Mês:</label>
-              <Input
-                id="dashboard-month"
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-                style={{ colorScheme: theme }}
-                className="w-40 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 focus-visible:ring-emerald-500 cursor-pointer text-sm"
-              />
-            </div>
+
+            {/* Progresso Consolidado de Metas */}
+            <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm mt-4">
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm">Progresso de Metas Ativas</CardTitle>
+              </CardHeader>
+              <CardContent className="pb-4">
+                {activeConsolidatedGoals.length === 0 ? (
+                  <p className="text-zinc-500 text-xs">Nenhum objetivo poupança ativo.</p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    {activeConsolidatedGoals.slice(0, 4).map(goal => {
+                      const pct = Math.min(100, Math.round(((goal.current_amount || 0) / goal.target_amount) * 100));
+                      return (
+                        <div key={goal.id} className="space-y-1.5">
+                          <div className="flex justify-between text-xs">
+                            <span className="font-medium truncate pr-2">{goal.name}</span>
+                            <span className="text-zinc-500 dark:text-zinc-400 text-[10px] whitespace-nowrap">
+                              {formatCurrency(goal.current_amount)}
+                            </span>
+                          </div>
+                          <Progress value={pct} className="h-1.5 bg-zinc-100 dark:bg-zinc-800 border-none" />
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
-          {/* Cartões de Indicadores */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Patrimônio Líquido</CardTitle>
-                <Wallet className="text-indigo-400 h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <div className={`text-2xl font-bold ${netWorth >= 0 ? 'text-indigo-500 dark:text-indigo-400' : 'text-rose-500 dark:text-rose-400'}`}>
-                  {formatCurrency(netWorth)}
-                </div>
-                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Saldo em contas + Investimentos</p>
-              </CardContent>
-            </Card>
 
-            <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Total Receitas</CardTitle>
-                <TrendingUp className="text-emerald-500 h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {formatCurrency(totalIncome)}
-                </div>
-                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Soma de salários e outras rendas</p>
-              </CardContent>
-            </Card>
+          <hr className="border-zinc-200 dark:border-zinc-800" />
 
-            <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Total Despesas</CardTitle>
-                <TrendingDown className="text-rose-500 h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
-                  {formatCurrency(totalExpense)}
-                </div>
-                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Soma de gastos mensais efetuados</p>
-              </CardContent>
-            </Card>
+          {/* SEÇÃO 2: FLUXO MENSAL */}
+          <div className="space-y-4">
+            {/* Seletor de Período Mensal */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-4 rounded-lg shadow-sm">
+              <div>
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Fluxo Mensal</h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">Métricas referentes ao mês selecionado.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="dashboard-month" className="text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">Mês:</label>
+                <Input
+                  id="dashboard-month"
+                  type="month"
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  style={{ colorScheme: theme }}
+                  className="w-40 bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 focus-visible:ring-emerald-500 cursor-pointer text-sm"
+                />
+              </div>
+            </div>
 
-            <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Valor Investido</CardTitle>
-                <LineChart className="text-indigo-500 h-4 w-4" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-indigo-500 dark:text-indigo-400">
-                  {formatCurrency(totalInvested)}
-                </div>
-                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Total alocado em renda fixa e variável</p>
-              </CardContent>
-            </Card>
+            {/* Cartões do Mês */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Receitas do Mês</CardTitle>
+                  <TrendingUp className="text-emerald-500 h-4 w-4" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(totalIncome)}
+                  </div>
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Ganhos no mês selecionado</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Despesas do Mês</CardTitle>
+                  <TrendingDown className="text-rose-500 h-4 w-4" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
+                    {formatCurrency(totalExpense)}
+                  </div>
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Gastos no mês selecionado</p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Balanço do Mês</CardTitle>
+                  <ArrowLeftRight className="text-zinc-400 h-4 w-4" />
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${monthlyBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                    {formatCurrency(monthlyBalance)}
+                  </div>
+                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Receitas - Despesas (Sobra/Falta)</p>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           {/* Grid de Orçamentos e Metas rápidas */}
@@ -267,33 +358,34 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Resumo Metas */}
+            
+            {/* Aportes do Mês em Metas */}
             <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
               <CardHeader>
-                <CardTitle className="text-lg">Progresso das Metas</CardTitle>
-                <CardDescription className="text-zinc-500 dark:text-zinc-400">Seus objetivos de poupança ativos.</CardDescription>
+                <CardTitle className="text-lg">Aportes do Mês em Metas</CardTitle>
+                <CardDescription className="text-zinc-500 dark:text-zinc-400">Total poupado para objetivos em {selectedMonth.split('-')[1]}/{selectedMonth.split('-')[0]}.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 max-h-80 overflow-y-auto pr-1">
-                {savingGoals.length === 0 ? (
-                  <p className="text-zinc-500 text-sm text-center py-6">Nenhum objetivo poupança ativo.</p>
+                {activeGoalsForMonth.length === 0 ? (
+                  <p className="text-zinc-500 text-sm text-center py-6">Nenhuma meta ativa elegível neste mês.</p>
                 ) : (
-                  savingGoals.slice(0, 4).map(goal => {
-                    const pct = Math.min(100, Math.round(((goal.current_amount || 0) / goal.target_amount) * 100))
+                  activeGoalsForMonth.map(goal => {
+                    const deposited = getDepositsForGoal(goal.id, selectedMonth);
                     return (
                       <div key={goal.id} className="space-y-1.5">
                         <div className="flex justify-between text-xs">
-                          <span className="font-medium">{goal.name}</span>
-                          <span className="text-zinc-500 dark:text-zinc-400">
-                            {formatCurrency(goal.current_amount)} / {formatCurrency(goal.target_amount)}
+                          <span className="font-medium flex items-center gap-1.5"><PiggyBank size={14} className="text-emerald-500"/> {goal.name}</span>
+                          <span className={deposited > 0 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-zinc-500 dark:text-zinc-400'}>
+                            {deposited > 0 ? '+' + formatCurrency(deposited) : 'R$ 0,00'}
                           </span>
                         </div>
-                        <Progress value={pct} className="h-1.5 bg-zinc-100 dark:bg-zinc-800 border-none" />
                       </div>
                     )
                   })
                 )}
               </CardContent>
             </Card>
+  
           </div>
 
           {/* Últimos Lançamentos */}
