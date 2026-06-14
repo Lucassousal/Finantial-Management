@@ -3,8 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Input } from '../ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Button } from '../ui/button'
-import { Plus, Loader2, FileText } from 'lucide-react'
+import { Plus, Loader2, FileText, Trash2 } from 'lucide-react'
 import { formatCurrencyInput, parseCurrencyToNumber } from '../../lib/utils'
+import { useFinancial } from '../../context/FinancialContext'
 
 export const AddTransactionForm = React.memo(({ addTransaction, categories, familyMembers, importingPdf, handlePdfUpload }) => {
   const [description, setDescription] = useState('')
@@ -15,16 +16,51 @@ export const AddTransactionForm = React.memo(({ addTransaction, categories, fami
   const [familyMemberId, setFamilyMemberId] = useState('')
   const [isFuture, setIsFuture] = useState(false)
   const [notes, setNotes] = useState('')
-  const [submittingTrans, setSubmittingTrans] = useState(false)
+    const [submittingTrans, setSubmittingTrans] = useState(false)
 
-  const handleAddTrans = async (e) => {
+  const { investments, savingGoals, updateInvestmentBalance, updateSavingGoalAmount } = useFinancial()
+  const [selectedInvestmentId, setSelectedInvestmentId] = useState('')
+  const [goalAllocations, setGoalAllocations] = useState([]) // [{ goalId: '', amountStr: '' }]
+
+  const addGoalAllocation = () => setGoalAllocations([...goalAllocations, { goalId: '', amountStr: '' }])
+  const removeGoalAllocation = (index) => setGoalAllocations(goalAllocations.filter((_, i) => i !== index))
+  const updateGoalAllocation = (index, field, value) => {
+    const newArr = [...goalAllocations]
+    newArr[index][field] = value
+    setGoalAllocations(newArr)
+  }
+
+    const handleAddTrans = async (e) => {
     e.preventDefault()
     if (!description || !amount || !categoryId || !date) return
+    if (type === 'investment' && !selectedInvestmentId) {
+      alert("Por favor, selecione um investimento de destino para o aporte.")
+      return
+    }
+
+    const totalAmountNum = parseCurrencyToNumber(amount)
+
+    // Validar alocações de metas
+    if (type === 'investment' && goalAllocations.length > 0) {
+      let allocatedTotal = 0
+      for (const alloc of goalAllocations) {
+        if (!alloc.goalId || !alloc.amountStr) {
+          alert("Preencha todos os campos das metas distribuídas ou remova a linha vazia.")
+          return
+        }
+        allocatedTotal += parseCurrencyToNumber(alloc.amountStr)
+      }
+      if (allocatedTotal > totalAmountNum) {
+        alert("O valor distribuído para as metas não pode ultrapassar o valor total do Aporte!")
+        return
+      }
+    }
+
     setSubmittingTrans(true)
     try {
       await addTransaction({
         description,
-        amount: parseCurrencyToNumber(amount),
+        amount: totalAmountNum,
         type,
         category_id: categoryId,
         date,
@@ -32,11 +68,35 @@ export const AddTransactionForm = React.memo(({ addTransaction, categories, fami
         is_future: isFuture,
         notes: notes || null
       })
+
+      // Se for aporte, atualiza o saldo do investimento
+      if (type === 'investment' && selectedInvestmentId) {
+        const inv = investments.find(i => i.id === selectedInvestmentId)
+        if (inv) {
+          const newBalance = parseFloat(inv.current_balance || 0) + totalAmountNum
+          await updateInvestmentBalance(selectedInvestmentId, newBalance, date)
+        }
+        
+        // E injeta o dinheiro nas metas selecionadas
+        for (const alloc of goalAllocations) {
+          const allocNum = parseCurrencyToNumber(alloc.amountStr)
+          if (allocNum > 0) {
+            const goal = savingGoals.find(g => g.id === alloc.goalId)
+            if (goal) {
+              const newGoalTotal = parseFloat(goal.current_amount || 0) + allocNum
+              await updateSavingGoalAmount(alloc.goalId, newGoalTotal, allocNum, date)
+            }
+          }
+        }
+      }
+
       setDescription('')
       setAmount('')
       setFamilyMemberId('')
       setNotes('')
       setIsFuture(false)
+      setSelectedInvestmentId('')
+      setGoalAllocations([])
     } catch (err) {
       console.error(err)
     } finally {
@@ -161,6 +221,65 @@ export const AddTransactionForm = React.memo(({ addTransaction, categories, fami
               className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
             />
           </div>
+
+          {type === 'investment' && (
+            <div className="sm:col-span-2 space-y-4 mt-2 p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-emerald-800 dark:text-emerald-400">Investimento Destino <span className="text-red-500">*</span></label>
+                <Select value={selectedInvestmentId} onValueChange={setSelectedInvestmentId} required={type === 'investment'}>
+                  <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                    <SelectValue placeholder="Onde o dinheiro foi investido?" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                    {investments.map((inv) => (
+                      <SelectItem key={inv.id} value={inv.id}>{inv.name}</SelectItem>
+                    ))}
+                    {investments.length === 0 && (
+                      <SelectItem value="none" disabled>Nenhum investimento cadastrado</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-emerald-600/70 dark:text-emerald-500/70">O saldo deste investimento será atualizado automaticamente.</p>
+              </div>
+
+              <div className="space-y-3 pt-2 border-t border-emerald-200/50 dark:border-emerald-800/50">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-bold text-emerald-800 dark:text-emerald-400">Distribuir em Metas (Opcional)</label>
+                  <Button type="button" variant="outline" size="sm" onClick={addGoalAllocation} className="h-7 text-xs border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400">
+                    <Plus size={14} className="mr-1" /> Adicionar Meta
+                  </Button>
+                </div>
+                
+                {goalAllocations.map((alloc, idx) => (
+                  <div key={idx} className="flex items-end gap-2">
+                    <div className="flex-1 space-y-1">
+                      <Select value={alloc.goalId} onValueChange={(val) => updateGoalAllocation(idx, 'goalId', val)}>
+                        <SelectTrigger className="h-8 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 text-xs">
+                          <SelectValue placeholder="Selecione a Meta" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 text-xs">
+                          {savingGoals.map((g) => (
+                            <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="w-1/3 space-y-1">
+                      <Input 
+                        value={alloc.amountStr} 
+                        onChange={(e) => updateGoalAllocation(idx, 'amountStr', formatCurrencyInput(e.target.value))} 
+                        placeholder="Valor"
+                        className="h-8 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 text-xs text-right"
+                      />
+                    </div>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeGoalAllocation(idx)} className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 sm:col-span-2">
             <input 

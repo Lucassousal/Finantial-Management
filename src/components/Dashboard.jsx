@@ -36,7 +36,7 @@ const SettingsTab = lazy(() => import('./SettingsTab'))
 export default function Dashboard() {
   const { user, signOut } = useAuth()
   const { theme, toggleTheme } = useTheme()
-  const { transactions, investments, budgets, savingGoals, goalDeposits = [], loading } = useFinancial()
+  const { transactions, investments, budgets, savingGoals, goalDeposits = [], recurringRules = [], loading } = useFinancial()
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().toISOString().slice(0, 7)) // 'YYYY-MM'
   const [helpModalType, setHelpModalType] = useState(null)
 
@@ -47,13 +47,31 @@ export default function Dashboard() {
   // ==========================================
   // CÁLCULOS DO DASHBOARD (VISÃO GERAL)
   // ==========================================
+  const currentMonthStr = new Date().toISOString().slice(0, 7);
+  const isFutureMonth = selectedMonth > currentMonthStr;
+
+  let projectedIncome = 0;
+  let projectedExpense = 0;
+
+  if (isFutureMonth) {
+    recurringRules.forEach(rule => {
+      const start = rule.start_date ? rule.start_date.slice(0, 7) : '0000-00';
+      const end = rule.end_date ? rule.end_date.slice(0, 7) : '9999-12';
+      if (selectedMonth >= start && selectedMonth <= end) {
+        const amt = parseFloat(rule.amount || 0);
+        if (rule.type === 'income') projectedIncome += amt;
+        else if (rule.type === 'expense') projectedExpense += amt;
+      }
+    });
+  }
+
   const totalIncome = transactions
     .filter(t => t.type === 'income' && (t.billing_date || t.date).startsWith(selectedMonth))
-    .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
+    .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0) + projectedIncome;
 
   const totalExpense = transactions
     .filter(t => t.type === 'expense' && (t.billing_date || t.date).startsWith(selectedMonth))
-    .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
+    .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0) + projectedExpense;
 
   const totalInvested = investments
     .reduce((sum, i) => sum + parseFloat(i.current_balance || 0), 0)
@@ -90,9 +108,20 @@ export default function Dashboard() {
   };
 
   const getAmountSpentForCategory = (catId, budgetMonth) => {
-    return transactions
+    let baseSpent = transactions
       .filter((t) => t.category_id === catId && t.type === 'expense' && (t.billing_date || t.date).startsWith(budgetMonth))
-      .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0)
+      .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+    if (budgetMonth > currentMonthStr) {
+      baseSpent += recurringRules
+        .filter(rule => {
+          const start = rule.start_date ? rule.start_date.slice(0, 7) : '0000-00';
+          const end = rule.end_date ? rule.end_date.slice(0, 7) : '9999-12';
+          return rule.category_id === catId && rule.type === 'expense' && budgetMonth >= start && budgetMonth <= end;
+        })
+        .reduce((sum, rule) => sum + parseFloat(rule.amount || 0), 0);
+    }
+    return baseSpent;
   }
 
   return (
