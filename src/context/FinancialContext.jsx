@@ -267,18 +267,63 @@ export const FinancialProvider = ({ children }) => {
 
   const updateInvestmentBalance = async (id, newBalance, date) => {
     try {
-      const { error } = await supabase
+      // 1. Descobre a variação (Delta)
+      const inv = investments.find(i => i.id === id)
+      const oldCurrentBalance = parseFloat(inv?.current_balance || 0)
+      const delta = newBalance - oldCurrentBalance
+      const targetDate = date || new Date().toISOString().split('T')[0]
+
+      // 2. Atualiza o saldo principal
+      const { error: invErr } = await supabase
         .from('investments')
         .update({ current_balance: newBalance })
         .eq('id', id)
-      if (error) throw error
+      if (invErr) throw invErr
 
-      // Salva no histórico de investimentos para alimentar gráficos
-      await supabase.from('investment_history').insert({
-        investment_id: id,
-        balance: newBalance,
-        date: date || new Date().toISOString().split('T')[0]
+      // 3. Busca TODO o histórico deste investimento que seja na data alvo OU no futuro
+      const { data: futureHistory, error: histErr } = await supabase
+        .from('investment_history')
+        .select('*')
+        .eq('investment_id', id)
+        .gte('date', targetDate)
+        
+      if (histErr) throw histErr
+
+      const existingTarget = futureHistory.find(h => h.date === targetDate)
+
+      // 4a. Se não houver uma foto exata para essa data, inserimos a nova âncora isoladamente.
+      // Inserir separadamente evita o erro de "chaves não uniformes" no bulk upsert do Supabase.
+      if (!existingTarget) {
+        const { error: insertErr } = await supabase
+          .from('investment_history')
+          .insert({
+            investment_id: id,
+            date: targetDate,
+            balance: newBalance
+          })
+        if (insertErr) throw insertErr
+      }
+
+      // 4b. Propagação do Efeito Cascata: avança para o futuro aplicando o delta
+      const updates = []
+      futureHistory.forEach(row => {
+        if (row.date === targetDate) {
+          // Se for a própria data alvo, cravamos o novo saldo absoluto
+          updates.push({ ...row, balance: newBalance })
+        } else {
+          // Se for no futuro, pegamos a foto que já existia lá e somamos a variação
+          updates.push({ ...row, balance: parseFloat(row.balance) + delta })
+        }
       })
+
+      // 5. Salva as atualizações (Upsert apenas de objetos preexistentes garante chaves uniformes)
+      if (updates.length > 0) {
+        const { error: upsertErr } = await supabase
+          .from('investment_history')
+          .upsert(updates)
+        
+        if (upsertErr) throw upsertErr
+      }
 
       setInvestments(prev => prev.map(i => i.id === id ? { ...i, current_balance: newBalance } : i))
     } catch (err) {

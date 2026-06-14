@@ -49,28 +49,50 @@ export default function AnalyticsTab() {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
+        // Ordena por data crescente para garantir a cronologia absoluta
         const { data, error } = await supabase
           .from('investment_history')
-          .select('date, balance')
-          .order('date')
+          .select('investment_id, date, balance')
+          .order('date', { ascending: true })
+        
         if (error) throw error
 
-        // Agrupa o saldo acumulado por data
-        const grouped = data.reduce((acc, curr) => {
-          const targetDate = curr.billing_date || curr.date
-        const key = targetDate
-          if (!acc[key]) {
-            acc[key] = { date: new Date(key).toLocaleDateString('pt-BR'), total: 0 }
+        // Filtra apenas históricos de ativos que ainda existem na carteira
+        const activeInvestmentIds = new Set(investments.map(i => i.id))
+        const validData = data.filter(curr => activeInvestmentIds.has(curr.investment_id))
+
+        // Aplica lógica de Carry-Forward Absoluto (Última "Foto" Conhecida do Saldo)
+        const balancesMemo = {}
+        const datesMap = {}
+
+        validData.forEach(curr => {
+          const targetDate = curr.date // YYYY-MM-DD
+          
+          // Atualiza a "memória" com a foto mais recente do saldo para este ativo nesta data
+          balancesMemo[curr.investment_id] = parseFloat(curr.balance || 0)
+
+          // O total do portfólio no final daquele dia é a soma das fotos de todos os ativos
+          const totalPortfolio = Object.values(balancesMemo).reduce((sum, val) => sum + val, 0)
+
+          // Sobrescreve o total do dia. Se houverem múltiplos lançamentos no mesmo dia,
+          // o último processado definirá o saldo final daquele dia.
+          datesMap[targetDate] = { 
+            date: new Date(targetDate + 'T12:00:00').toLocaleDateString('pt-BR'), 
+            total: totalPortfolio 
           }
-          acc[key].total += parseFloat(curr.balance || 0)
-          return acc
-        }, {})
+        })
         
-        setInvestHistory(Object.values(grouped))
+        // Converte o mapa de datas em um array ordenado
+        const finalHistory = Object.keys(datesMap)
+          .sort()
+          .map(dateKey => datesMap[dateKey])
+
+        setInvestHistory(finalHistory)
       } catch (err) {
         console.error('Erro ao buscar histórico de investimentos:', err)
       }
     }
+    
     fetchHistory()
   }, [investments])
 
