@@ -18,7 +18,8 @@ import {
   LineChart, 
   Line, 
   AreaChart, 
-  Area 
+  Area,
+  ComposedChart
 } from 'recharts'
 import { TrendingUp, Calendar, Filter, HelpCircle, X } from 'lucide-react'
 
@@ -35,6 +36,7 @@ export default function AnalyticsTab() {
   const [investHistory, setInvestHistory] = useState([])
   const [selectedCats, setSelectedCats] = useState([]) // Categorias selecionadas para histórico
   const [forecastMonths, setForecastMonths] = useState(6)
+  const [trendPeriod, setTrendPeriod] = useState(6)
   const [isHelpOpen, setIsHelpOpen] = useState(false)
   const [shouldRenderCharts, setShouldRenderCharts] = useState(false)
 
@@ -193,36 +195,58 @@ export default function AnalyticsTab() {
   const forecastData = useMemo(() => {
     const forecast = []
     
-    // Calcula o saldo atual inicial líquido (Saldo em contas + Investimentos)
+    // 1. Calcular o saldo atual inicial líquido (Saldo em contas + Investimentos)
     const currentContas = transactions
       .reduce((sum, t) => {
-        if (t.type === 'income') return sum + parseFloat(t.amount)
-        if (t.type === 'expense') return sum - parseFloat(t.amount)
+        if (t.is_future) return sum // ignora futuros para o saldo atual
+        if (t.type === 'income' || t.type === 'redemption') return sum + parseFloat(t.amount || 0)
+        if (t.type === 'expense' || t.type === 'investment') return sum - parseFloat(t.amount || 0)
         return sum
       }, 0)
     
-    const currentInvestments = investments.reduce((sum, i) => sum + parseFloat(i.current_balance), 0)
+    const currentInvestments = investments.reduce((sum, i) => sum + parseFloat(i.current_balance || 0), 0)
     let projectedBalance = currentContas + currentInvestments
 
-    // Adiciona ponto inicial
     forecast.push({
       monthLabel: 'Atual',
       Saldo: projectedBalance
     })
 
-    // O(N) Agrupamento: Lançamentos futuros por mês
+    // 2. Calcular a Tendência Variável do Passado (Últimos `trendPeriod` meses)
+    const cutoffDate = new Date()
+    cutoffDate.setMonth(cutoffDate.getMonth() - trendPeriod)
+    const cutoffIso = cutoffDate.toISOString().slice(0, 10)
+    const todayIso = new Date().toISOString().slice(0, 10)
+
+    let variableIncome = 0
+    let variableExpense = 0
+
+    transactions.forEach(t => {
+      if (t.is_future || t.is_recurring) return
+      
+      const tDate = t.date
+      if (tDate >= cutoffIso && tDate <= todayIso) {
+        if (t.type === 'income') variableIncome += parseFloat(t.amount || 0)
+        if (t.type === 'expense') variableExpense += parseFloat(t.amount || 0)
+      }
+    })
+
+    // Média Mensal Variável
+    const avgVariableDelta = (variableIncome - variableExpense) / trendPeriod
+
+    // 3. O(N) Agrupamento: Lançamentos futuros agendados por mês
     const futureByMonth = {}
     transactions.forEach(t => {
       if (t.is_future) {
         const monthStr = (t.billing_date || t.date).slice(0, 7)
         if (!futureByMonth[monthStr]) futureByMonth[monthStr] = 0
-        const amt = parseFloat(t.amount)
-        if (t.type === 'income') futureByMonth[monthStr] += amt
+        const amt = parseFloat(t.amount || 0)
+        if (t.type === 'income' || t.type === 'redemption') futureByMonth[monthStr] += amt
         else if (t.type === 'expense' || t.type === 'investment') futureByMonth[monthStr] -= amt
       }
     })
 
-    // Projeta os próximos N meses
+    // 4. Projeta os próximos N meses
     for (let i = 1; i <= forecastMonths; i++) {
       const targetDate = new Date()
       targetDate.setMonth(targetDate.getMonth() + i)
@@ -242,11 +266,12 @@ export default function AnalyticsTab() {
           return monthStr >= start && monthStr <= end
         })
         .reduce((sum, rule) => {
-          const amt = parseFloat(rule.amount)
+          const amt = parseFloat(rule.amount || 0)
           return rule.type === 'income' ? sum + amt : sum - amt
         }, 0)
 
-      projectedBalance += futureSum + recurringSum
+      // C. A tendência variável projetada para todos os meses futuros
+      projectedBalance += futureSum + recurringSum + avgVariableDelta
       
       forecast.push({
         monthLabel: label,
@@ -255,7 +280,7 @@ export default function AnalyticsTab() {
     }
 
     return forecast
-  }, [transactions, investments, recurringRules, forecastMonths])
+  }, [transactions, investments, recurringRules, forecastMonths, trendPeriod])
 
   // ==========================================
   // 5. PREVISÃO DE GASTOS FUTUROS (PRÓXIMOS 4 MESES - STACKED BAR)
@@ -548,10 +573,10 @@ export default function AnalyticsTab() {
         {/* Previsão Futura */}
         <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <CardTitle className="text-lg text-zinc-900 dark:text-white flex items-center gap-1.5 font-bold">
-                  Previsão e Evolução Patrimonial
+                  Previsão Híbrida de Patrimônio
                   <button 
                     onClick={() => setIsHelpOpen(true)}
                     className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-200 p-0.5 rounded transition-colors cursor-pointer"
@@ -560,17 +585,39 @@ export default function AnalyticsTab() {
                     <HelpCircle size={16} />
                   </button>
                 </CardTitle>
-                <CardDescription className="text-zinc-500 dark:text-zinc-400">Previsão para os próximos meses baseada em recorrências e agendamentos.</CardDescription>
+                <CardDescription className="text-zinc-500 dark:text-zinc-400 mt-1">
+                  Projeção futura baseada nos seus agendamentos, regras recorrentes e na sua média de estilo de vida variável do passado.
+                </CardDescription>
               </div>
-              <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 text-xs font-semibold bg-emerald-500/10 px-2.5 py-1 rounded border border-emerald-500/20">
-                <TrendingUp size={14} />
-                Projeção
+              
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="flex items-center bg-zinc-100 dark:bg-zinc-950 p-1 rounded-md border border-zinc-200 dark:border-zinc-800">
+                  <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 px-2 hidden sm:block">Tendência:</span>
+                  <button 
+                    onClick={() => setTrendPeriod(3)}
+                    className={`px-3 py-1 text-xs rounded transition-colors ${trendPeriod === 3 ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-xs' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'}`}
+                  >
+                    3 Meses
+                  </button>
+                  <button 
+                    onClick={() => setTrendPeriod(6)}
+                    className={`px-3 py-1 text-xs rounded transition-colors ${trendPeriod === 6 ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-xs' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'}`}
+                  >
+                    6 Meses
+                  </button>
+                  <button 
+                    onClick={() => setTrendPeriod(12)}
+                    className={`px-3 py-1 text-xs rounded transition-colors ${trendPeriod === 12 ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-xs' : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'}`}
+                  >
+                    1 Ano
+                  </button>
+                </div>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="h-64">
+          <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={forecastData} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
+              <ComposedChart data={forecastData} margin={{ top: 20, right: 10, left: 10, bottom: 5 }}>
                 <XAxis dataKey="monthLabel" stroke={theme === 'dark' ? '#a1a1aa' : '#71717a'} fontSize={12} tickLine={false} />
                 <YAxis stroke={theme === 'dark' ? '#a1a1aa' : '#71717a'} fontSize={12} tickLine={false} tickFormatter={(v) => `R$ ${v}`} />
                 <Tooltip 
@@ -578,16 +625,26 @@ export default function AnalyticsTab() {
                   contentStyle={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderColor: theme === 'dark' ? '#27272a' : '#e4e4e7', borderRadius: '6px', color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
                   itemStyle={{ color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
                 />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Bar 
+                  dataKey="Saldo" 
+                  name="Patrimônio Projetado" 
+                  fill="#10b981" 
+                  fillOpacity={0.8}
+                  radius={[4, 4, 0, 0]} 
+                  barSize={40}
+                />
                 <Line 
                   type="monotone" 
                   dataKey="Saldo" 
-                  stroke="#10b981" 
-                  strokeWidth={2.5} 
-                  strokeDasharray="4 4"
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
+                  name="Linha de Tendência"
+                  stroke="#f59e0b" 
+                  strokeWidth={3} 
+                  strokeDasharray="5 5"
+                  dot={{ r: 4, fill: "#f59e0b", strokeWidth: 0 }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
                 />
-              </LineChart>
+              </ComposedChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>

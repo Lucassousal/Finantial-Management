@@ -301,10 +301,10 @@ const TransactionRowList = React.memo(({ paginatedTransactions, formatDateBR, ha
           </TableCell>
           <TableCell>{formatDateBR(t.date)}</TableCell>
           <TableCell className="text-xs capitalize text-zinc-500 dark:text-zinc-400">
-            {t.type === 'income' ? 'Receita' : t.type === 'investment' ? 'Aporte' : 'Despesa'}
+            {t.type === 'income' ? 'Receita' : t.type === 'investment' ? 'Aporte' : t.type === 'redemption' ? 'Resgate' : 'Despesa'}
           </TableCell>
-          <TableCell className={`text-right font-semibold ${t.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-            {t.type === 'income' ? '+' : '-'} {formatCurrency(t.amount)}
+          <TableCell className={`text-right font-semibold ${t.type === 'income' || t.type === 'redemption' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+            {t.type === 'income' || t.type === 'redemption' ? '+' : '-'} {formatCurrency(t.amount)}
           </TableCell>
           <TableCell>
             <Button 

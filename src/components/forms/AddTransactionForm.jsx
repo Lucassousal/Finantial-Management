@@ -32,9 +32,12 @@ export const AddTransactionForm = React.memo(({ addTransaction, categories, fami
 
     const handleAddTrans = async (e) => {
     e.preventDefault()
-    if (!description || !amount || !categoryId || !date) return
-    if (type === 'investment' && !selectedInvestmentId) {
-      alert("Por favor, selecione um investimento de destino para o aporte.")
+    if (!description || !amount || !categoryId || !date) {
+      alert("Por favor, preencha todos os campos obrigatórios (Descrição, Valor, Categoria e Data).")
+      return
+    }
+    if ((type === 'investment' || type === 'redemption') && !selectedInvestmentId) {
+      alert("Por favor, selecione um investimento.")
       return
     }
 
@@ -69,22 +72,25 @@ export const AddTransactionForm = React.memo(({ addTransaction, categories, fami
         notes: notes || null
       })
 
-      // Se for aporte, atualiza o saldo do investimento
-      if (type === 'investment' && selectedInvestmentId) {
+      // Se for aporte ou resgate, atualiza o saldo do investimento
+      if ((type === 'investment' || type === 'redemption') && selectedInvestmentId) {
         const inv = investments.find(i => i.id === selectedInvestmentId)
         if (inv) {
-          const newBalance = parseFloat(inv.current_balance || 0) + totalAmountNum
+          const delta = type === 'investment' ? totalAmountNum : -totalAmountNum
+          const newBalance = parseFloat(inv.current_balance || 0) + delta
           await updateInvestmentBalance(selectedInvestmentId, newBalance, date)
         }
         
-        // E injeta o dinheiro nas metas selecionadas
-        for (const alloc of goalAllocations) {
-          const allocNum = parseCurrencyToNumber(alloc.amountStr)
-          if (allocNum > 0) {
-            const goal = savingGoals.find(g => g.id === alloc.goalId)
-            if (goal) {
-              const newGoalTotal = parseFloat(goal.current_amount || 0) + allocNum
-              await updateSavingGoalAmount(alloc.goalId, newGoalTotal, allocNum, date)
+        // E injeta o dinheiro nas metas selecionadas (apenas para aportes)
+        if (type === 'investment') {
+          for (const alloc of goalAllocations) {
+            const allocNum = parseCurrencyToNumber(alloc.amountStr)
+            if (allocNum > 0) {
+              const goal = savingGoals.find(g => g.id === alloc.goalId)
+              if (goal) {
+                const newGoalTotal = parseFloat(goal.current_amount || 0) + allocNum
+                await updateSavingGoalAmount(alloc.goalId, newGoalTotal, allocNum, date)
+              }
             }
           }
         }
@@ -153,7 +159,7 @@ export const AddTransactionForm = React.memo(({ addTransaction, categories, fami
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Tipo de Fluxo</label>
-            <Select value={type} onValueChange={(val) => setType(val)}>
+            <Select value={type} onValueChange={(val) => { setType(val); setCategoryId(''); }}>
               <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
@@ -161,18 +167,19 @@ export const AddTransactionForm = React.memo(({ addTransaction, categories, fami
                 <SelectItem value="expense">Despesa</SelectItem>
                 <SelectItem value="income">Receita</SelectItem>
                 <SelectItem value="investment">Investimento (Aporte)</SelectItem>
+                <SelectItem value="redemption">Investimento (Resgate)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Categoria</label>
-            <Select value={categoryId} onValueChange={(val) => setCategoryId(val)}>
+            <Select value={categoryId} onValueChange={(val) => setCategoryId(val)} required>
               <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
                 <SelectValue placeholder="Selecione a categoria" />
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
-                {categories.filter(c => c.type === type).map((cat) => (
+                {categories.filter(c => c.type === (type === 'redemption' ? 'investment' : type)).map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>
                     <span className="flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }}></span>
@@ -222,13 +229,15 @@ export const AddTransactionForm = React.memo(({ addTransaction, categories, fami
             />
           </div>
 
-          {type === 'investment' && (
+          {(type === 'investment' || type === 'redemption') && (
             <div className="sm:col-span-2 space-y-4 mt-2 p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
               <div className="space-y-2">
-                <label className="text-sm font-bold text-emerald-800 dark:text-emerald-400">Investimento Destino <span className="text-red-500">*</span></label>
-                <Select value={selectedInvestmentId} onValueChange={setSelectedInvestmentId} required={type === 'investment'}>
+                <label className="text-sm font-bold text-emerald-800 dark:text-emerald-400">
+                  {type === 'investment' ? 'Investimento Destino' : 'Investimento de Origem'} <span className="text-red-500">*</span>
+                </label>
+                <Select value={selectedInvestmentId} onValueChange={setSelectedInvestmentId} required={type === 'investment' || type === 'redemption'}>
                   <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
-                    <SelectValue placeholder="Onde o dinheiro foi investido?" />
+                    <SelectValue placeholder={type === 'investment' ? 'Onde o dinheiro foi investido?' : 'De qual investimento o dinheiro saiu?'} />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
                     {investments.map((inv) => (
@@ -242,8 +251,9 @@ export const AddTransactionForm = React.memo(({ addTransaction, categories, fami
                 <p className="text-xs text-emerald-600/70 dark:text-emerald-500/70">O saldo deste investimento será atualizado automaticamente.</p>
               </div>
 
-              <div className="space-y-3 pt-2 border-t border-emerald-200/50 dark:border-emerald-800/50">
-                <div className="flex items-center justify-between">
+              {type === 'investment' && (
+                <div className="space-y-3 pt-2 border-t border-emerald-200/50 dark:border-emerald-800/50">
+                  <div className="flex items-center justify-between">
                   <label className="text-sm font-bold text-emerald-800 dark:text-emerald-400">Distribuir em Metas (Opcional)</label>
                   <Button type="button" variant="outline" size="sm" onClick={addGoalAllocation} className="h-7 text-xs border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400">
                     <Plus size={14} className="mr-1" /> Adicionar Meta
@@ -278,6 +288,7 @@ export const AddTransactionForm = React.memo(({ addTransaction, categories, fami
                   </div>
                 ))}
               </div>
+              )}
             </div>
           )}
 

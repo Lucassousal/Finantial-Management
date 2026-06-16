@@ -76,11 +76,12 @@ export default function Dashboard() {
   const totalInvested = investments
     .reduce((sum, i) => sum + parseFloat(i.current_balance || 0), 0)
 
-  // Saldo das contas correntes/liquidez (receitas - despesas - aportes)
+  // Saldo das contas correntes/liquidez (receitas - despesas - aportes + resgates)
   const totalContas = transactions
     .reduce((sum, t) => {
+      if (t.is_future) return sum
       const amt = parseFloat(t.amount || 0)
-      if (t.type === 'income') return sum + amt
+      if (t.type === 'income' || t.type === 'redemption') return sum + amt
       if (t.type === 'expense' || t.type === 'investment') return sum - amt
       return sum
     }, 0)

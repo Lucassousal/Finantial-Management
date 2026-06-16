@@ -44,7 +44,7 @@ create table if not exists public.transactions (
   user_id uuid references auth.users(id) on delete cascade not null,
   description text not null,
   amount numeric(12,2) not null,
-  type text check (type in ('income', 'expense', 'investment')) not null,
+  type text check (type in ('income', 'expense', 'investment', 'redemption')) not null,
   category_id uuid references public.categories(id) on delete set null,
   date date not null,
   family_member_id uuid references public.family_members(id) on delete set null,
