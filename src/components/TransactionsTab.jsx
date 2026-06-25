@@ -936,6 +936,14 @@ Retorne estritamente um objeto JSON no seguinte formato:
                             <Button 
                               variant="ghost" 
                               size="icon" 
+                              onClick={() => handleStartEditRec(rule)}
+                              className="text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-200 dark:hover:bg-zinc-800 mr-1"
+                            >
+                              <Edit2 size={16} />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
                               onClick={() => confirmDeleteRec(rule.id, rule.description, rule.amount)}
                               className="text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-zinc-200 dark:hover:bg-zinc-800"
                             >
