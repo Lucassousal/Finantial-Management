@@ -373,6 +373,7 @@ export default function TransactionsTab() {
   const [endDateFilter, setEndDateFilter] = useState('')
   const [searchFilter, setSearchFilter] = useState('')
   const [refMonthFilter, setRefMonthFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('all')
   const [visibleItemsCount, setVisibleItemsCount] = useState(30)
   const ITEMS_PER_PAGE = 30
 
@@ -401,9 +402,12 @@ export default function TransactionsTab() {
       // Filtro de Mês de Referência (YYYY-MM)
       if (refMonthFilter && !(t.billing_date || '').startsWith(refMonthFilter)) return false
 
+      // Filtro de Categoria
+      if (categoryFilter !== 'all' && t.category_id !== categoryFilter) return false
+
       return true
     })
-  }, [transactions, startDateFilter, endDateFilter, searchFilter, refMonthFilter])
+  }, [transactions, startDateFilter, endDateFilter, searchFilter, refMonthFilter, categoryFilter])
 
   // Fatiando as transações visíveis (Scroll Infinito)
   const paginatedTransactions = useMemo(() => {
@@ -976,7 +980,7 @@ Retorne estritamente um objeto JSON no seguinte formato:
             <div className="space-y-4">
               {/* Filtros de Tabela */}
               <div className="flex flex-col gap-4 pb-4 border-b border-zinc-200 dark:border-zinc-800">
-                {/* Linha Superior: Busca e Mês de Referência */}
+                {/* Linha Superior: Busca, Categoria e Mês de Referência */}
                 <div className="flex flex-wrap items-center gap-4">
                   <div className="flex-1 min-w-[200px]">
                     <Input 
@@ -989,6 +993,19 @@ Retorne estritamente um objeto JSON no seguinte formato:
                       }}
                       className="h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
                     />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Select value={categoryFilter} onValueChange={(val) => { setCategoryFilter(val); setVisibleItemsCount(ITEMS_PER_PAGE); }}>
+                      <SelectTrigger className="w-48 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                        <SelectValue placeholder="Todas as Categorias" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                        <SelectItem value="all">Todas as Categorias</SelectItem>
+                        {categories.map(c => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Fatura:</span>
@@ -1030,7 +1047,7 @@ Retorne estritamente um objeto JSON no seguinte formato:
                       className="w-40 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
                     />
                   </div>
-                  {(startDateFilter || endDateFilter || searchFilter || refMonthFilter) && (
+                  {(startDateFilter || endDateFilter || searchFilter || refMonthFilter || categoryFilter !== 'all') && (
                     <Button 
                       variant="ghost" 
                       size="sm"
@@ -1039,6 +1056,7 @@ Retorne estritamente um objeto JSON no seguinte formato:
                         setEndDateFilter('')
                         setSearchFilter('')
                         setRefMonthFilter('')
+                        setCategoryFilter('all')
                         setVisibleItemsCount(ITEMS_PER_PAGE)
                       }}
                       className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
