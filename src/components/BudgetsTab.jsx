@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { Progress } from './ui/progress'
-import { Plus, Trash2, AlertTriangle, CheckCircle, Edit2 } from 'lucide-react'
+import { Plus, Trash2, AlertTriangle, CheckCircle, Edit2, PieChart } from 'lucide-react'
 import { formatCurrencyInput, parseCurrencyToNumber } from '../lib/utils'
 import { ConfirmDialog } from './ui/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog'
-
+import { AddBudgetModal } from './modals/AddBudgetModal'
+import { EmptyState } from './ui/empty-state'
 
 export default function BudgetsTab() {
   const { 
@@ -21,10 +22,7 @@ export default function BudgetsTab() {
     updateBudget
   } = useFinancial()
 
-  const [categoryId, setCategoryId] = useState('')
-  const [amountLimit, setAmountLimit] = useState('')
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7)) // 'YYYY-MM'
-  const [submitting, setSubmitting] = useState(false)
+  const [isAddBudgetOpen, setIsAddBudgetOpen] = useState(false)
 
   // Estados Edição de Orçamento
   const [isEditOpen, setIsEditOpen] = useState(false)
@@ -121,74 +119,32 @@ export default function BudgetsTab() {
 
   return (
     <div className="space-y-6 text-zinc-900 dark:text-zinc-50">
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Formulário Novo Orçamento */}
-        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-xl text-zinc-900 dark:text-white">Definir Limite de Gastos</CardTitle>
-            <CardDescription className="text-zinc-500 dark:text-zinc-400">Estabeleça um teto de despesa mensal para uma categoria específica.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAddBudget} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Categoria</label>
-                <Select value={categoryId} onValueChange={(val) => setCategoryId(val)}>
-                  <SelectTrigger className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
-                    <SelectValue placeholder="Selecione a categoria" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
-                    {categories.filter(c => c.type === 'expense').map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+      {/* Action Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
+        <div>
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Orçamentos</h2>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">Controle seus tetos de gastos mensais.</p>
+        </div>
+        <Button onClick={() => setIsAddBudgetOpen(true)} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white gap-2 cursor-pointer">
+          <Plus size={16} /> Novo Orçamento
+        </Button>
+      </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Limite Mensal</label>
-                <Input 
-                  type="text" 
-                  value={amountLimit} 
-                  onChange={(e) => setAmountLimit(formatCurrencyInput(e.target.value))} 
-                  placeholder="R$ 0,00"
-                  required 
-                  className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Mês de Referência</label>
-                <Input 
-                  type="month"
-                  value={month} 
-                  onChange={(e) => setMonth(e.target.value)} 
-                  required 
-                  className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
-                />
-              </div>
-
-              <Button 
-                type="submit" 
-                disabled={submitting}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-medium gap-2 cursor-pointer"
-              >
-                <Plus size={16} /> Definir Teto
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Listagem de Orçamentos Ativos */}
-        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 md:col-span-2 shadow-sm">
+      <div className="grid gap-6">
+        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm w-full">
           <CardHeader>
             <CardTitle className="text-xl text-zinc-900 dark:text-white">Acompanhamento de Orçamentos</CardTitle>
             <CardDescription className="text-zinc-500 dark:text-zinc-400">Verifique a porcentagem de limite consumida em cada categoria.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 max-h-[450px] overflow-y-auto pr-1">
+          <CardContent className="max-h-96 overflow-y-auto space-y-4 pr-1">
             {budgets.length === 0 ? (
-              <div className="text-zinc-500 text-center py-6">Nenhum orçamento configurado para este mês.</div>
+              <EmptyState 
+                icon={PieChart} 
+                title="Nenhum limite definido" 
+                description="Você ainda não configurou orçamentos. Defina tetos de gastos para manter suas finanças sob controle."
+                actionLabel="Novo Orçamento"
+                onAction={() => setIsAddBudgetOpen(true)}
+              />
             ) : (
               budgets.map(b => {
                 const spent = getAmountSpent(b.category_id, b.month)
@@ -277,6 +233,13 @@ export default function BudgetsTab() {
           </CardContent>
         </Card>
       </div>
+
+      <AddBudgetModal 
+        isOpen={isAddBudgetOpen} 
+        onClose={() => setIsAddBudgetOpen(false)} 
+        addBudget={addBudget} 
+        categories={categories} 
+      />
 
       <ConfirmDialog 
         isOpen={deleteConfirmOpen}

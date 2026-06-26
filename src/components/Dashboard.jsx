@@ -126,9 +126,10 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 p-4 sm:p-6 transition-colors duration-250">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 p-4 sm:p-8 transition-colors duration-250">
+      <div className="max-w-7xl mx-auto space-y-8">
       {/* Cabeçalho do App */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-200 dark:border-zinc-800 pb-6 mb-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-200 dark:border-zinc-800 pb-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
             <Wallet className="text-emerald-500 h-8 w-8" />
@@ -214,10 +215,10 @@ export default function Dashboard() {
               <Wallet className="h-5 w-5 text-indigo-500" />
               Patrimônio Consolidado
             </h3>
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
+            <div className="grid gap-6 md:grid-cols-3">
+              <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                  <CardTitle className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
                     Saldo em Contas
                     <button 
                       onClick={() => setHelpModalType('saldo')}
@@ -227,33 +228,33 @@ export default function Dashboard() {
                       <HelpCircle size={14} />
                     </button>
                   </CardTitle>
-                  <PiggyBank className="text-emerald-500 h-4 w-4" />
+                  <PiggyBank className="text-emerald-500 h-5 w-5" />
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-2xl font-bold ${totalContas >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-500 dark:text-rose-400'}`}>
+                  <div className={`text-3xl font-bold tracking-tight ${totalContas >= 0 ? 'text-zinc-900 dark:text-white' : 'text-rose-500 dark:text-rose-400'}`}>
                     {formatCurrency(totalContas)}
                   </div>
-                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Dinheiro disponível (Receitas - Despesas)</p>
+                  <p className="text-xs font-light text-zinc-400 dark:text-zinc-500 mt-2">Dinheiro disponível (Receitas - Despesas)</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
+              <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Total Investido</CardTitle>
-                  <LineChart className="text-indigo-500 h-4 w-4" />
+                  <CardTitle className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Investido</CardTitle>
+                  <LineChart className="text-indigo-500 h-5 w-5" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-indigo-500 dark:text-indigo-400">
+                  <div className="text-3xl font-bold tracking-tight text-indigo-500 dark:text-indigo-400">
                     {formatCurrency(totalInvested)}
                   </div>
-                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Alocado em renda fixa e variável</p>
+                  <p className="text-xs font-light text-zinc-400 dark:text-zinc-500 mt-2">Alocado em renda fixa e variável</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-400/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
+              <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 dark:bg-indigo-400/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
                 <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-                  <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+                  <CardTitle className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
                     Patrimônio Líquido
                     <button 
                       onClick={() => setHelpModalType('patrimonio')}
@@ -263,13 +264,13 @@ export default function Dashboard() {
                       <HelpCircle size={14} />
                     </button>
                   </CardTitle>
-                  <Wallet className="text-indigo-500 h-4 w-4" />
+                  <Wallet className="text-indigo-500 h-5 w-5" />
                 </CardHeader>
                 <CardContent className="relative z-10">
-                  <div className={`text-2xl font-bold ${netWorth >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-500 dark:text-rose-400'}`}>
+                  <div className={`text-3xl font-bold tracking-tight ${netWorth >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-500 dark:text-rose-400'}`}>
                     {formatCurrency(netWorth)}
                   </div>
-                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Soma de todo o seu capital</p>
+                  <p className="text-xs font-light text-zinc-400 dark:text-zinc-500 mt-2">Soma de todo o seu capital</p>
                 </CardContent>
               </Card>
             </div>
@@ -328,43 +329,43 @@ export default function Dashboard() {
             </div>
 
             {/* Cartões do Mês */}
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-3">
               <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Receitas do Mês</CardTitle>
-                  <TrendingUp className="text-emerald-500 h-4 w-4" />
+                  <CardTitle className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Receitas do Mês</CardTitle>
+                  <TrendingUp className="text-emerald-500 h-5 w-5" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                  <div className="text-3xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
                     {formatCurrency(totalIncome)}
                   </div>
-                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Ganhos no mês selecionado</p>
+                  <p className="text-xs font-light text-zinc-400 dark:text-zinc-500 mt-2">Ganhos no mês selecionado</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Despesas do Mês</CardTitle>
-                  <TrendingDown className="text-rose-500 h-4 w-4" />
+                  <CardTitle className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Despesas do Mês</CardTitle>
+                  <TrendingDown className="text-rose-500 h-5 w-5" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">
+                  <div className="text-3xl font-bold tracking-tight text-rose-600 dark:text-rose-400">
                     {formatCurrency(totalExpense)}
                   </div>
-                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Gastos no mês selecionado</p>
+                  <p className="text-xs font-light text-zinc-400 dark:text-zinc-500 mt-2">Gastos no mês selecionado</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Balanço do Mês</CardTitle>
-                  <ArrowLeftRight className="text-zinc-400 h-4 w-4" />
+                  <CardTitle className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Balanço do Mês</CardTitle>
+                  <ArrowLeftRight className="text-zinc-400 h-5 w-5" />
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-2xl font-bold ${monthlyBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                  <div className={`text-3xl font-bold tracking-tight ${monthlyBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                     {formatCurrency(monthlyBalance)}
                   </div>
-                  <p className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">Receitas - Despesas (Sobra/Falta)</p>
+                  <p className="text-xs font-light text-zinc-400 dark:text-zinc-500 mt-2">Receitas - Despesas (Sobra/Falta)</p>
                 </CardContent>
               </Card>
             </div>
@@ -596,6 +597,7 @@ export default function Dashboard() {
         </div>
       )}
 
+      </div>
     </div>
   )
 }
