@@ -1,13 +1,12 @@
 import React, { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Input } from '../ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select'
 import { Button } from '../ui/button'
-import { Plus, Loader2, FileText, Trash2 } from 'lucide-react'
+import { Plus, Loader2, Trash2 } from 'lucide-react'
 import { formatCurrencyInput, parseCurrencyToNumber } from '../../lib/utils'
 import { useFinancial } from '../../context/FinancialContext'
 
-export const AddTransactionForm = React.memo(({ addTransaction, categories, familyMembers, importingPdf, handlePdfUpload }) => {
+export const AddTransactionForm = React.memo(({ addTransaction, categories, familyMembers, onSuccess }) => {
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
   const [type, setType] = useState('expense')
@@ -103,6 +102,7 @@ export const AddTransactionForm = React.memo(({ addTransaction, categories, fami
       setIsFuture(false)
       setSelectedInvestmentId('')
       setGoalAllocations([])
+      if (onSuccess) onSuccess()
     } catch (err) {
       console.error(err)
     } finally {
@@ -111,29 +111,7 @@ export const AddTransactionForm = React.memo(({ addTransaction, categories, fami
   }
 
   return (
-    <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
-      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0 pb-4">
-        <div>
-          <CardTitle className="text-xl text-zinc-900 dark:text-white">Nova Movimentação</CardTitle>
-          <CardDescription className="text-zinc-500 dark:text-zinc-400">Lançamento de fluxo de caixa único (imediato ou futuro).</CardDescription>
-        </div>
-        <div>
-          <label className="cursor-pointer inline-flex items-center justify-center rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900 text-sm font-medium h-8 px-3 gap-1.5 transition-colors shadow-xs">
-            <FileText size={16} className="text-emerald-500" />
-            Importar Fatura (PDF)
-            <input 
-              type="file" 
-              accept="application/pdf" 
-              onChange={handlePdfUpload} 
-              className="hidden" 
-              disabled={importingPdf}
-            />
-          </label>
-        </div>
-      </CardHeader>
-
-      <CardContent>
-        <form onSubmit={handleAddTrans} className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={handleAddTrans} className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Descrição</label>
             <Input 
@@ -305,23 +283,26 @@ export const AddTransactionForm = React.memo(({ addTransaction, categories, fami
             </label>
           </div>
 
-          <Button 
-            type="submit" 
-            disabled={submittingTrans}
-            className="w-full sm:col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium gap-2 mt-2 cursor-pointer"
-          >
-            {submittingTrans ? (
-              <>
-                <Loader2 size={16} className="animate-spin" /> Salvando...
-              </>
-            ) : (
-              <>
-                <Plus size={16} /> Lançar Movimentação
-              </>
-            )}
-          </Button>
+          <div className="sm:col-span-2 flex justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800 mt-2">
+            <Button type="button" variant="outline" onClick={() => {if(onSuccess) onSuccess()}}>
+              Cancelar
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={submittingTrans}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium gap-2 cursor-pointer"
+            >
+              {submittingTrans ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Salvando...
+                </>
+              ) : (
+                <>
+                  <Plus size={16} /> Lançar Movimentação
+                </>
+              )}
+            </Button>
+          </div>
         </form>
-      </CardContent>
-    </Card>
   )
 })

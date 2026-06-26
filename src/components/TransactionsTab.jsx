@@ -13,8 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import EditTransactionModal from './modals/EditTransactionModal'
 import EditRecurringRuleModal from './modals/EditRecurringRuleModal'
-import { AddTransactionForm } from './forms/AddTransactionForm'
-import { AddRecurringRuleForm } from './forms/AddRecurringRuleForm'
+import AddTransactionModal from './modals/AddTransactionModal'
+import AddRecurringRuleModal from './modals/AddRecurringRuleModal'
 import { adjustRecurringDate, computeBillingDate, calculateEndDate, formatDateBR } from '../lib/dateUtils'
 
 const loadPdfJs = () => {
@@ -367,6 +367,10 @@ export default function TransactionsTab() {
   
   const [isEditTransOpen, setIsEditTransOpen] = useState(false)
   const [transactionToEdit, setTransactionToEdit] = useState(null)
+
+  // Estados para Criação
+  const [isAddTransOpen, setIsAddTransOpen] = useState(false)
+  const [isAddRecOpen, setIsAddRecOpen] = useState(false)
 
   // Estados de Paginação e Filtro de Datas
   const [startDateFilter, setStartDateFilter] = useState('')
@@ -792,14 +796,28 @@ Retorne estritamente um objeto JSON no seguinte formato:
 
   return (
     <div className="space-y-6 text-zinc-900 dark:text-zinc-50">
-      {/* Formulário de Transação */}
-      <AddTransactionForm 
-        addTransaction={addTransaction}
-        categories={categories}
-        familyMembers={familyMembers}
-        importingPdf={importingPdf}
-        handlePdfUpload={handlePdfUpload}
-      />
+      {/* Action Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-center p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
+        <Button onClick={() => setIsAddTransOpen(true)} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white gap-2 cursor-pointer">
+          <Plus size={16} /> Nova Movimentação
+        </Button>
+        <Button onClick={() => setIsAddRecOpen(true)} variant="outline" className="w-full sm:w-auto gap-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer">
+          <Clock size={16} /> Novo Lançamento Recorrente
+        </Button>
+        <Button variant="outline" className={`w-full sm:w-auto gap-2 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 ${!importingPdf ? 'cursor-pointer' : 'opacity-50 cursor-not-allowed'}`} asChild>
+          <label>
+            {importingPdf ? <Loader2 size={16} className="animate-spin text-emerald-500" /> : <FileText size={16} className="text-emerald-500" />}
+            {importingPdf ? 'Lendo PDF...' : 'Importar Fatura (PDF)'}
+            <input 
+              type="file" 
+              accept="application/pdf" 
+              onChange={handlePdfUpload} 
+              className="hidden" 
+              disabled={importingPdf}
+            />
+          </label>
+        </Button>
+      </div>
 
       {/* Cadastro de Despesas/Receitas Recorrentes */}
       <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
@@ -807,16 +825,9 @@ Retorne estritamente um objeto JSON no seguinte formato:
           <CardTitle className="text-xl text-zinc-900 dark:text-white">Lançamentos Recorrentes</CardTitle>
           <CardDescription className="text-zinc-500 dark:text-zinc-400">Configure despesas ou receitas repetidas mensalmente (financiamentos, assinaturas, salários fixos).</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-6 lg:grid-cols-3">
-          {/* Formulário Recorrência */}
-          <AddRecurringRuleForm 
-            addRecurringRule={addRecurringRule}
-            categories={categories}
-            familyMembers={familyMembers}
-          />
-
+        <CardContent>
           {/* Listagem de Recorrências Cadastradas */}
-          <div className="lg:col-span-2 overflow-x-auto mt-2">
+          <div className="overflow-x-auto">
             <Tabs defaultValue="ativos" className="w-full">
               <TabsList className="mb-4 bg-zinc-100 dark:bg-zinc-900">
                 <TabsTrigger value="ativos" className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800">
@@ -832,10 +843,11 @@ Retorne estritamente um objeto JSON no seguinte formato:
                   <TableHeader className="border-zinc-200 dark:border-zinc-800">
                     <TableRow className="border-zinc-200 dark:border-zinc-800 hover:bg-transparent">
                       <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Descrição</TableHead>
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Membro</TableHead>
                       <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Categoria</TableHead>
-                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Responsável</TableHead>
                       <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Período</TableHead>
-                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium text-right">Valor Mensal</TableHead>
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Tipo</TableHead>
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium text-right">Valor</TableHead>
                       <TableHead className="w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -848,6 +860,7 @@ Retorne estritamente um objeto JSON no seguinte formato:
                       recurringRules.filter(r => !r.end_date || r.end_date >= new Date().toISOString().split('T')[0]).map((rule) => (
                         <TableRow key={rule.id} className="border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40">
                           <TableCell className="font-medium text-zinc-900 dark:text-white">{rule.description}</TableCell>
+                          <TableCell className="text-zinc-800 dark:text-zinc-300">{rule.family_members?.name || '-'}</TableCell>
                           <TableCell>
                             <span 
                               className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold"
@@ -859,13 +872,15 @@ Retorne estritamente um objeto JSON no seguinte formato:
                               {rule.categories?.name || 'Geral'}
                             </span>
                           </TableCell>
-                          <TableCell className="text-zinc-800 dark:text-zinc-300">{rule.family_members?.name || '-'}</TableCell>
                           <TableCell className="text-xs text-zinc-500 dark:text-zinc-400">
                             De {formatDateBR(rule.start_date)} 
                             {rule.end_date ? ` até ${formatDateBR(rule.end_date)}` : ' (Indeterminado)'}
                           </TableCell>
+                          <TableCell className="text-xs capitalize text-zinc-500 dark:text-zinc-400">
+                            {rule.type === 'income' ? 'Receita' : 'Despesa'}
+                          </TableCell>
                           <TableCell className={`text-right font-semibold ${rule.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                            {formatCurrency(rule.amount)}
+                            {rule.type === 'income' ? '+' : '-'} {formatCurrency(rule.amount)}
                           </TableCell>
                           <TableCell>
                             <Button 
@@ -897,10 +912,11 @@ Retorne estritamente um objeto JSON no seguinte formato:
                   <TableHeader className="border-zinc-200 dark:border-zinc-800">
                     <TableRow className="border-zinc-200 dark:border-zinc-800 hover:bg-transparent">
                       <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Descrição</TableHead>
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Membro</TableHead>
                       <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Categoria</TableHead>
-                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Responsável</TableHead>
                       <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Período</TableHead>
-                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium text-right">Valor Mensal</TableHead>
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium">Tipo</TableHead>
+                      <TableHead className="text-zinc-500 dark:text-zinc-400 font-medium text-right">Valor</TableHead>
                       <TableHead className="w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
@@ -918,6 +934,7 @@ Retorne estritamente um objeto JSON no seguinte formato:
                               Encerrado
                             </span>
                           </TableCell>
+                          <TableCell className="text-zinc-800 dark:text-zinc-300">{rule.family_members?.name || '-'}</TableCell>
                           <TableCell>
                             <span 
                               className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold grayscale"
@@ -929,12 +946,14 @@ Retorne estritamente um objeto JSON no seguinte formato:
                               {rule.categories?.name || 'Geral'}
                             </span>
                           </TableCell>
-                          <TableCell className="text-zinc-800 dark:text-zinc-300">{rule.family_members?.name || '-'}</TableCell>
                           <TableCell className="text-xs text-zinc-500 dark:text-zinc-400">
                             De {formatDateBR(rule.start_date)} até {formatDateBR(rule.end_date)}
                           </TableCell>
+                          <TableCell className="text-xs capitalize text-zinc-500 dark:text-zinc-400 grayscale">
+                            {rule.type === 'income' ? 'Receita' : 'Despesa'}
+                          </TableCell>
                           <TableCell className={`text-right font-semibold ${rule.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'} grayscale`}>
-                            {formatCurrency(rule.amount)}
+                            {rule.type === 'income' ? '+' : '-'} {formatCurrency(rule.amount)}
                           </TableCell>
                           <TableCell>
                             <Button 
@@ -1137,6 +1156,22 @@ Retorne estritamente um objeto JSON no seguinte formato:
         onClose={() => setIsEditTransOpen(false)}
         transaction={transactionToEdit}
         onSave={handleSaveEditTrans}
+        categories={categories}
+        familyMembers={familyMembers}
+      />
+
+      <AddTransactionModal
+        isOpen={isAddTransOpen}
+        onClose={() => setIsAddTransOpen(false)}
+        addTransaction={addTransaction}
+        categories={categories}
+        familyMembers={familyMembers}
+      />
+
+      <AddRecurringRuleModal
+        isOpen={isAddRecOpen}
+        onClose={() => setIsAddRecOpen(false)}
+        addRecurringRule={addRecurringRule}
         categories={categories}
         familyMembers={familyMembers}
       />

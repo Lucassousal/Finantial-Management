@@ -5,7 +5,7 @@ import { Button } from '../ui/button'
 import { Clock, Loader2 } from 'lucide-react'
 import { formatCurrencyInput, parseCurrencyToNumber } from '../../lib/utils'
 
-export const AddRecurringRuleForm = React.memo(({ addRecurringRule, categories, familyMembers }) => {
+export const AddRecurringRuleForm = React.memo(({ addRecurringRule, categories, familyMembers, onSuccess }) => {
   const [recDesc, setRecDesc] = useState('')
   const [recAmount, setRecAmount] = useState('')
   const [recType, setRecType] = useState('expense')
@@ -34,6 +34,7 @@ export const AddRecurringRuleForm = React.memo(({ addRecurringRule, categories, 
       setRecAmount('')
       setRecFamilyMemberId('')
       setRecEndDate('')
+      if (onSuccess) onSuccess()
     } catch (err) {
       console.error(err)
     } finally {
@@ -42,7 +43,7 @@ export const AddRecurringRuleForm = React.memo(({ addRecurringRule, categories, 
   }
 
   return (
-    <form onSubmit={handleAddRec} className="space-y-4 lg:col-span-1">
+    <form onSubmit={handleAddRec} className="space-y-4">
       <div className="space-y-2">
         <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Descrição</label>
         <Input 
@@ -128,21 +129,26 @@ export const AddRecurringRuleForm = React.memo(({ addRecurringRule, categories, 
           </SelectContent>
         </Select>
       </div>
-      <Button 
-        type="submit" 
-        disabled={submittingRec}
-        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium gap-2 cursor-pointer"
-      >
-        {submittingRec ? (
-          <>
-            <Loader2 size={16} className="animate-spin" /> Salvando...
-          </>
-        ) : (
-          <>
-            <Clock size={16} /> Salvar Regra de Recorrência
-          </>
-        )}
-      </Button>
+      <div className="sm:col-span-2 flex justify-end gap-3 pt-4 border-t border-zinc-200 dark:border-zinc-800 mt-2">
+        <Button type="button" variant="outline" onClick={() => {if(onSuccess) onSuccess()}}>
+          Cancelar
+        </Button>
+        <Button 
+          type="submit" 
+          disabled={submittingRec}
+          className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium gap-2 cursor-pointer"
+        >
+          {submittingRec ? (
+            <>
+              <Loader2 size={16} className="animate-spin" /> Salvando...
+            </>
+          ) : (
+            <>
+              <Clock size={16} /> Salvar Regra
+            </>
+          )}
+        </Button>
+      </div>
     </form>
   )
 })
