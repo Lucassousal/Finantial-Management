@@ -23,6 +23,46 @@ import {
 } from 'recharts'
 import { TrendingUp, Calendar, Filter, HelpCircle, X } from 'lucide-react'
 
+// Tooltip customizado para exibições detalhadas por categoria com soma total e z-index elevado
+const CategoryCustomTooltip = ({ active, payload, label, formatCurrency }) => {
+  if (!active || !payload || !payload.length) return null
+
+  const total = payload.reduce((acc, item) => acc + (Number(item.value) || 0), 0)
+
+  return (
+    <div className="bg-white/95 dark:bg-zinc-900/95 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg shadow-xl text-xs min-w-[220px] max-w-[320px] flex flex-col z-[1000] pointer-events-auto">
+      <div className="font-bold text-zinc-800 dark:text-zinc-100 pb-1.5 mb-1.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-sm">
+        <span>{label}</span>
+      </div>
+      
+      <div className="space-y-1.5 overflow-y-auto pr-1 flex-1 max-h-48">
+        {payload.map((entry, index) => {
+          const catName = entry.name || entry.dataKey
+          const val = Number(entry.value) || 0
+          const color = entry.color || entry.fill || entry.stroke || '#a1a1aa'
+
+          return (
+            <div key={`item-${index}`} className="flex items-center justify-between gap-3 py-0.5">
+              <div className="flex items-center gap-1.5 truncate">
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                <span className="truncate text-zinc-600 dark:text-zinc-300 font-medium">{catName}:</span>
+              </div>
+              <span className="font-semibold text-zinc-900 dark:text-zinc-100 flex-shrink-0">
+                {formatCurrency(val)}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="mt-2 pt-2 border-t border-zinc-200 dark:border-zinc-800 flex items-center justify-between font-bold text-sm">
+        <span className="text-zinc-700 dark:text-zinc-300">Total</span>
+        <span className="text-emerald-600 dark:text-emerald-400 font-bold">{formatCurrency(total)}</span>
+      </div>
+    </div>
+  )
+}
+
 export default function AnalyticsTab() {
   const { theme } = useTheme()
   const { 
@@ -385,6 +425,8 @@ export default function AnalyticsTab() {
                   formatter={(value) => formatCurrency(value)} 
                   contentStyle={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderColor: theme === 'dark' ? '#27272a' : '#e4e4e7', borderRadius: '6px', color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
                   itemStyle={{ color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
+                  wrapperStyle={{ zIndex: 1000, outline: 'none' }}
+                  allowEscapeViewBox={{ x: true, y: true }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
                 <Bar dataKey="Receitas" fill="#10b981" radius={[4, 4, 0, 0]} barSize={60} />
@@ -423,6 +465,8 @@ export default function AnalyticsTab() {
                     formatter={(value) => formatCurrency(value)}
                     contentStyle={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderColor: theme === 'dark' ? '#27272a' : '#e4e4e7', borderRadius: '6px', color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
                     itemStyle={{ color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
+                    wrapperStyle={{ zIndex: 1000, outline: 'none' }}
+                    allowEscapeViewBox={{ x: true, y: true }}
                   />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', marginTop: '10px' }} />
                 </PieChart>
@@ -433,7 +477,7 @@ export default function AnalyticsTab() {
       </div>
 
       {/* Histórico Mensal por Categoria (Multiselect) */}
-      <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
+      <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm overflow-visible relative z-10">
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -461,7 +505,7 @@ export default function AnalyticsTab() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="h-72">
+        <CardContent className="h-80">
           {selectedCats.length === 0 ? (
             <div className="text-zinc-500 text-center py-12 flex items-center justify-center gap-2">
               <Filter size={18} />
@@ -473,11 +517,11 @@ export default function AnalyticsTab() {
                 <XAxis dataKey="monthLabel" stroke={theme === 'dark' ? '#a1a1aa' : '#71717a'} fontSize={12} tickLine={false} />
                 <YAxis stroke={theme === 'dark' ? '#a1a1aa' : '#71717a'} fontSize={12} tickLine={false} tickFormatter={(v) => `R$ ${v}`} />
                 <Tooltip 
-                  formatter={(value) => formatCurrency(value)}
-                  contentStyle={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderColor: theme === 'dark' ? '#27272a' : '#e4e4e7', borderRadius: '6px', color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
-                  itemStyle={{ color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
+                  content={<CategoryCustomTooltip formatCurrency={formatCurrency} />}
+                  wrapperStyle={{ zIndex: 1000, outline: 'none' }}
+                  allowEscapeViewBox={{ x: true, y: true }}
                 />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', zIndex: 1 }} />
                 {selectedCats.map((cat, index) => {
                   // Procura a cor da categoria
                   const catColor = categories.find(c => c.name === cat)?.color || colorPalette[index % colorPalette.length]
@@ -500,7 +544,7 @@ export default function AnalyticsTab() {
       </Card>
 
       {/* Previsão de Gastos Futuros (Stacked Bar) */}
-      <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
+      <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm overflow-visible relative z-10">
         <CardHeader>
           <CardTitle className="text-lg text-zinc-900 dark:text-white">Previsão de Gastos Futuros (Próximos 4 Meses)</CardTitle>
           <CardDescription className="text-zinc-500 dark:text-zinc-400">
@@ -513,11 +557,11 @@ export default function AnalyticsTab() {
               <XAxis dataKey="monthLabel" stroke={theme === 'dark' ? '#a1a1aa' : '#71717a'} fontSize={12} tickLine={false} />
               <YAxis stroke={theme === 'dark' ? '#a1a1aa' : '#71717a'} fontSize={12} tickLine={false} tickFormatter={(v) => `R$ ${v}`} />
               <Tooltip 
-                formatter={(value) => formatCurrency(value)}
-                contentStyle={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderColor: theme === 'dark' ? '#27272a' : '#e4e4e7', borderRadius: '6px', color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
-                itemStyle={{ color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
+                content={<CategoryCustomTooltip formatCurrency={formatCurrency} />}
+                wrapperStyle={{ zIndex: 1000, outline: 'none' }}
+                allowEscapeViewBox={{ x: true, y: true }}
               />
-              <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+              <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', zIndex: 1 }} />
               {categories
                 .filter(c => c.type === 'expense')
                 .map((cat, index) => (
@@ -556,6 +600,8 @@ export default function AnalyticsTab() {
                     formatter={(value) => formatCurrency(value)}
                     contentStyle={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderColor: theme === 'dark' ? '#27272a' : '#e4e4e7', borderRadius: '6px', color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
                     itemStyle={{ color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
+                    wrapperStyle={{ zIndex: 1000, outline: 'none' }}
+                    allowEscapeViewBox={{ x: true, y: true }}
                   />
                   <Area type="monotone" dataKey="total" stroke="#6366f1" fillOpacity={0.15} fill="url(#colorTotal)" strokeWidth={2.5} />
                   <defs>
@@ -624,6 +670,8 @@ export default function AnalyticsTab() {
                   formatter={(value) => formatCurrency(value)}
                   contentStyle={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderColor: theme === 'dark' ? '#27272a' : '#e4e4e7', borderRadius: '6px', color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
                   itemStyle={{ color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
+                  wrapperStyle={{ zIndex: 1000, outline: 'none' }}
+                  allowEscapeViewBox={{ x: true, y: true }}
                 />
                 <Legend wrapperStyle={{ fontSize: '12px' }} />
                 <Bar 
