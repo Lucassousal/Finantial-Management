@@ -423,7 +423,7 @@ export default function AnalyticsTab() {
       {/* Grid Superior */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Receita vs Despesa */}
-        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
+        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm relative z-40 hover:z-50 focus-within:z-50 overflow-visible transition-all">
           <CardHeader>
             <CardTitle className="text-lg text-zinc-900 dark:text-white">Receitas vs Despesas Acumuladas</CardTitle>
             <CardDescription className="text-zinc-500 dark:text-zinc-400">Visão geral entre totais de entrada e saída.</CardDescription>
@@ -449,7 +449,7 @@ export default function AnalyticsTab() {
         </Card>
 
         {/* Distribuição de Gastos */}
-        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
+        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm relative z-40 hover:z-50 focus-within:z-50 overflow-visible transition-all">
           <CardHeader>
             <CardTitle className="text-lg text-zinc-900 dark:text-white">Despesas por Categoria</CardTitle>
             <CardDescription className="text-zinc-500 dark:text-zinc-400">Distribuição percentual dos seus gastos.</CardDescription>
@@ -489,7 +489,7 @@ export default function AnalyticsTab() {
       </div>
 
       {/* Histórico Mensal por Categoria (Multiselect) */}
-      <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm overflow-visible relative z-10">
+      <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm relative z-30 hover:z-50 focus-within:z-50 overflow-visible transition-all">
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -556,7 +556,7 @@ export default function AnalyticsTab() {
       </Card>
 
       {/* Previsão de Gastos Futuros (Stacked Bar) */}
-      <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm overflow-visible relative z-10">
+      <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm relative z-20 hover:z-50 focus-within:z-50 overflow-visible transition-all">
         <CardHeader>
           <CardTitle className="text-lg text-zinc-900 dark:text-white">Previsão de Gastos Futuros (Próximos 4 Meses)</CardTitle>
           <CardDescription className="text-zinc-500 dark:text-zinc-400">
@@ -593,7 +593,7 @@ export default function AnalyticsTab() {
       {/* Grid Inferior - Evolução e Previsão */}
       <div className="grid gap-6 md:grid-cols-2">
         {/* Evolução de Investimentos */}
-        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
+        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm relative z-10 hover:z-50 focus-within:z-50 overflow-visible transition-all">
           <CardHeader>
             <CardTitle className="text-lg text-zinc-900 dark:text-white">Evolução dos Investimentos</CardTitle>
             <CardDescription className="text-zinc-500 dark:text-zinc-400">Histórico de valor acumulado em aplicações financeiras.</CardDescription>
@@ -629,7 +629,7 @@ export default function AnalyticsTab() {
         </Card>
 
         {/* Previsão Futura */}
-        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm">
+        <Card className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm relative z-10 hover:z-50 focus-within:z-50 overflow-visible transition-all">
           <CardHeader>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
