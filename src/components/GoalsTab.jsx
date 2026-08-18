@@ -143,7 +143,7 @@ export default function GoalsTab() {
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Metas Financeiras</h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">Acompanhe seus objetivos e reserve capital.</p>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Button onClick={() => setIsAddGoalOpen(true)} className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white gap-2 cursor-pointer">
             <Plus size={16} /> Nova Meta
           </Button>
@@ -174,11 +174,11 @@ export default function GoalsTab() {
                 const pct = Math.min(100, Math.round(((goal.current_amount || 0) / goal.target_amount) * 100))
                 return (
                   <div key={goal.id} className="p-3 rounded bg-zinc-50 dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div className="space-y-0.5">
-                        <h4 className="font-semibold text-zinc-900 dark:text-white flex items-center gap-1.5">
-                          <Target size={16} className="text-emerald-500 dark:text-emerald-400" />
-                          {goal.name}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-0.5 min-w-0">
+                        <h4 className="font-semibold text-zinc-900 dark:text-white flex items-center gap-1.5 break-all">
+                          <Target size={16} className="text-emerald-500 dark:text-emerald-400 flex-shrink-0" />
+                          <span>{goal.name}</span>
                         </h4>
                         {goal.target_date && (
                           <p className="text-[11px] text-zinc-500 flex items-center gap-1">

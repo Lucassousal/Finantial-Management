@@ -127,7 +127,7 @@ export default function InvestmentsTab() {
           <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Seus Ativos</h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">Cadastre e atualize a cotação da sua carteira.</p>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Button onClick={() => setIsAddInvestmentOpen(true)} className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white gap-2 cursor-pointer">
             <Plus size={16} /> Novo Ativo
           </Button>
