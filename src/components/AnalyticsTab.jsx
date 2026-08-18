@@ -438,7 +438,7 @@ export default function AnalyticsTab() {
                   contentStyle={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderColor: theme === 'dark' ? '#27272a' : '#e4e4e7', borderRadius: '6px', color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
                   itemStyle={{ color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
                   wrapperStyle={{ zIndex: 1000, outline: 'none' }}
-                  allowEscapeViewBox={{ x: true, y: true }}
+                  allowEscapeViewBox={{ x: false, y: true }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
                 <Bar dataKey="Receitas" fill="#10b981" radius={[4, 4, 0, 0]} barSize={60} />
@@ -478,7 +478,7 @@ export default function AnalyticsTab() {
                     contentStyle={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderColor: theme === 'dark' ? '#27272a' : '#e4e4e7', borderRadius: '6px', color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
                     itemStyle={{ color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
                     wrapperStyle={{ zIndex: 1000, outline: 'none' }}
-                    allowEscapeViewBox={{ x: true, y: true }}
+                    allowEscapeViewBox={{ x: false, y: true }}
                   />
                   <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', marginTop: '10px' }} />
                 </PieChart>
@@ -531,7 +531,7 @@ export default function AnalyticsTab() {
                 <Tooltip 
                   content={<CategoryCustomTooltip formatCurrency={formatCurrency} />}
                   wrapperStyle={{ zIndex: 1000, outline: 'none' }}
-                  allowEscapeViewBox={{ x: true, y: true }}
+                  allowEscapeViewBox={{ x: false, y: true }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', zIndex: 1 }} />
                 {selectedCats.map((cat, index) => {
@@ -571,7 +571,7 @@ export default function AnalyticsTab() {
               <Tooltip 
                 content={<CategoryCustomTooltip formatCurrency={formatCurrency} />}
                 wrapperStyle={{ zIndex: 1000, outline: 'none' }}
-                allowEscapeViewBox={{ x: true, y: true }}
+                allowEscapeViewBox={{ x: false, y: true }}
               />
               <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', zIndex: 1 }} />
               {categories
@@ -613,7 +613,7 @@ export default function AnalyticsTab() {
                     contentStyle={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderColor: theme === 'dark' ? '#27272a' : '#e4e4e7', borderRadius: '6px', color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
                     itemStyle={{ color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
                     wrapperStyle={{ zIndex: 1000, outline: 'none' }}
-                    allowEscapeViewBox={{ x: true, y: true }}
+                    allowEscapeViewBox={{ x: false, y: true }}
                   />
                   <Area type="monotone" dataKey="total" stroke="#6366f1" fillOpacity={0.15} fill="url(#colorTotal)" strokeWidth={2.5} />
                   <defs>
@@ -683,7 +683,7 @@ export default function AnalyticsTab() {
                   contentStyle={{ backgroundColor: theme === 'dark' ? '#18181b' : '#ffffff', borderColor: theme === 'dark' ? '#27272a' : '#e4e4e7', borderRadius: '6px', color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
                   itemStyle={{ color: theme === 'dark' ? '#f4f4f5' : '#18181b' }}
                   wrapperStyle={{ zIndex: 1000, outline: 'none' }}
-                  allowEscapeViewBox={{ x: true, y: true }}
+                  allowEscapeViewBox={{ x: false, y: true }}
                 />
                 <Legend wrapperStyle={{ fontSize: '12px' }} />
                 <Bar 
