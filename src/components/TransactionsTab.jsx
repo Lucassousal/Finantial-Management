@@ -4,7 +4,7 @@ import { Button } from './ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Input } from './ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from './ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { Plus, Trash2, Calendar, User, Tag, Clock, FileText, Edit2, Loader2 } from 'lucide-react'
 import { formatCurrencyInput, parseCurrencyToNumber } from '../lib/utils'
@@ -417,6 +417,38 @@ export default function TransactionsTab() {
   const paginatedTransactions = useMemo(() => {
     return filteredTransactions.slice(0, visibleItemsCount)
   }, [filteredTransactions, visibleItemsCount])
+
+  // Mês atual para filtro de regras de recorrência ativas vs encerradas (YYYY-MM)
+  const currentMonthStr = useMemo(() => new Date().toISOString().slice(0, 7), [])
+
+  // Regras Ativas: sem data final OU mês da data final >= mês atual
+  const activeRecurringRules = useMemo(() => {
+    return recurringRules.filter(r => !r.end_date || r.end_date.slice(0, 7) >= currentMonthStr)
+  }, [recurringRules, currentMonthStr])
+
+  // Concluídas / Encerradas: possui data final E mês da data final < mês atual
+  const endedRecurringRules = useMemo(() => {
+    return recurringRules.filter(r => r.end_date && r.end_date.slice(0, 7) < currentMonthStr)
+  }, [recurringRules, currentMonthStr])
+
+  // Totais das Regras Ativas
+  const activeRulesTotals = useMemo(() => {
+    let income = 0
+    let expense = 0
+    activeRecurringRules.forEach(r => {
+      const amt = parseFloat(r.amount) || 0
+      if (r.type === 'income') {
+        income += amt
+      } else {
+        expense += amt
+      }
+    })
+    return {
+      income,
+      expense,
+      net: income - expense
+    }
+  }, [activeRecurringRules])
 
   const handleStartEditRec = (rule) => {
     setRecurringRuleToEdit(rule)
@@ -852,12 +884,12 @@ Retorne estritamente um objeto JSON no seguinte formato:
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recurringRules.filter(r => !r.end_date || r.end_date >= new Date().toISOString().split('T')[0]).length === 0 ? (
+                    {activeRecurringRules.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-zinc-500 text-center py-6">Nenhum lançamento recorrente ativo.</TableCell>
+                        <TableCell colSpan={7} className="text-zinc-500 text-center py-6">Nenhum lançamento recorrente ativo.</TableCell>
                       </TableRow>
                     ) : (
-                      recurringRules.filter(r => !r.end_date || r.end_date >= new Date().toISOString().split('T')[0]).map((rule) => (
+                      activeRecurringRules.map((rule) => (
                         <TableRow key={rule.id} className="border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/40">
                           <TableCell className="font-medium text-zinc-900 dark:text-white">{rule.description}</TableCell>
                           <TableCell className="text-zinc-800 dark:text-zinc-300">{rule.family_members?.name || '-'}</TableCell>
@@ -904,6 +936,28 @@ Retorne estritamente um objeto JSON no seguinte formato:
                       ))
                     )}
                   </TableBody>
+                  {activeRecurringRules.length > 0 && (
+                    <TableFooter className="border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50/60 dark:bg-zinc-950/60">
+                      <TableRow className="hover:bg-transparent border-0">
+                        <TableCell colSpan={5} className="py-3 text-zinc-700 dark:text-zinc-300 font-semibold text-xs sm:text-sm">
+                          <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+                            <span>Total das Regras Ativas ({activeRecurringRules.length}):</span>
+                            <span className="text-emerald-600 dark:text-emerald-400 font-medium text-xs">
+                              Receitas: +{formatCurrency(activeRulesTotals.income)}
+                            </span>
+                            <span className="text-zinc-300 dark:text-zinc-700">|</span>
+                            <span className="text-rose-600 dark:text-rose-400 font-medium text-xs">
+                              Despesas: -{formatCurrency(activeRulesTotals.expense)}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className={`text-right py-3 font-bold text-sm ${activeRulesTotals.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                          {activeRulesTotals.net >= 0 ? '+' : ''} {formatCurrency(activeRulesTotals.net)}
+                        </TableCell>
+                        <TableCell className="w-10"></TableCell>
+                      </TableRow>
+                    </TableFooter>
+                  )}
                 </Table>
               </TabsContent>
 
@@ -921,12 +975,12 @@ Retorne estritamente um objeto JSON no seguinte formato:
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recurringRules.filter(r => r.end_date && r.end_date < new Date().toISOString().split('T')[0]).length === 0 ? (
+                    {endedRecurringRules.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-zinc-500 text-center py-6">Nenhuma regra de recorrência encerrada.</TableCell>
+                        <TableCell colSpan={7} className="text-zinc-500 text-center py-6">Nenhuma regra de recorrência encerrada.</TableCell>
                       </TableRow>
                     ) : (
-                      recurringRules.filter(r => r.end_date && r.end_date < new Date().toISOString().split('T')[0]).map((rule) => (
+                      endedRecurringRules.map((rule) => (
                         <TableRow key={rule.id} className="border-zinc-200 dark:border-zinc-800 opacity-60 bg-zinc-50/30 dark:bg-zinc-950/30">
                           <TableCell className="font-medium text-zinc-900 dark:text-white">
                             {rule.description}
