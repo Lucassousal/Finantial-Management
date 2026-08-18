@@ -126,16 +126,16 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 p-4 sm:p-8 transition-colors duration-250">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 px-3 py-4 sm:p-8 transition-colors duration-250">
+      <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
       {/* Cabeçalho do App */}
       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-200 dark:border-zinc-800 pb-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
-            <Wallet className="text-emerald-500 h-8 w-8" />
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-900 dark:text-white flex items-center gap-2">
+            <Wallet className="text-emerald-500 h-7 w-7 sm:h-8 sm:w-8" />
             Gestão Financeira
           </h1>
-          <p className="text-zinc-500 dark:text-zinc-400 text-sm">Controle financeiro familiar compartilhado • {user?.email}</p>
+          <p className="text-zinc-500 dark:text-zinc-400 text-xs sm:text-sm truncate max-w-[320px] sm:max-w-none">Controle financeiro familiar compartilhado • {user?.email}</p>
         </div>
         <div className="flex items-center gap-2">
           {/* Seletor de Tema */}
@@ -159,7 +159,7 @@ export default function Dashboard() {
 
       {/* Abas e Navegação */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 p-1 flex flex-row flex-nowrap justify-start overflow-x-auto whitespace-nowrap scrollbar-none w-full h-auto gap-1">
+        <TabsList className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 p-1 flex flex-row flex-nowrap justify-start overflow-x-auto whitespace-nowrap scrollbar-none touch-pan-x w-full h-auto gap-1">
           <TabsTrigger 
             value="overview" 
             className="data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-800 data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-400 hover:text-zinc-900 dark:hover:text-zinc-200 gap-2 py-2 cursor-pointer transition-colors"

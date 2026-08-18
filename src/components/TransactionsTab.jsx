@@ -1067,9 +1067,9 @@ Retorne estritamente um objeto JSON no seguinte formato:
                       className="h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
                     />
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     <Select value={categoryFilter} onValueChange={(val) => { setCategoryFilter(val); setVisibleItemsCount(ITEMS_PER_PAGE); }}>
-                      <SelectTrigger className="w-48 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
+                      <SelectTrigger className="w-full sm:w-48 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
                         <SelectValue placeholder="Todas as Categorias" />
                       </SelectTrigger>
                       <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50">
@@ -1080,7 +1080,7 @@ Retorne estritamente um objeto JSON no seguinte formato:
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Fatura:</span>
                     <Input 
                       type="month"
@@ -1089,14 +1089,14 @@ Retorne estritamente um objeto JSON no seguinte formato:
                         setRefMonthFilter(e.target.value)
                         setVisibleItemsCount(ITEMS_PER_PAGE)
                       }}
-                      className="w-40 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                      className="w-full sm:w-40 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
                     />
                   </div>
                 </div>
 
                 {/* Linha Inferior: Filtro de Datas Livres e Botão Limpar */}
                 <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">De:</span>
                     <Input 
                       type="date"
@@ -1105,10 +1105,10 @@ Retorne estritamente um objeto JSON no seguinte formato:
                         setStartDateFilter(e.target.value)
                         setVisibleItemsCount(ITEMS_PER_PAGE)
                       }}
-                      className="w-40 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                      className="w-full sm:w-40 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
                     />
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Até:</span>
                     <Input 
                       type="date"
@@ -1117,7 +1117,7 @@ Retorne estritamente um objeto JSON no seguinte formato:
                         setEndDateFilter(e.target.value)
                         setVisibleItemsCount(ITEMS_PER_PAGE)
                       }}
-                      className="w-40 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
+                      className="w-full sm:w-40 h-9 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-50"
                     />
                   </div>
                   {(startDateFilter || endDateFilter || searchFilter || refMonthFilter || categoryFilter !== 'all') && (

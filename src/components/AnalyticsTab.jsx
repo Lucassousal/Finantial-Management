@@ -31,14 +31,14 @@ const CategoryCustomTooltip = ({ active, payload, label, formatCurrency }) => {
 
   const itemCount = payload.length
   let gridColsClass = 'grid-cols-1'
-  let widthClass = 'min-w-[220px] max-w-[320px]'
+  let widthClass = 'w-full max-w-[calc(100vw-32px)] sm:min-w-[220px] sm:max-w-[320px]'
 
   if (itemCount > 12) {
-    gridColsClass = 'grid-cols-3'
-    widthClass = 'min-w-[520px] max-w-[650px]'
+    gridColsClass = 'grid-cols-1 sm:grid-cols-3'
+    widthClass = 'w-full max-w-[calc(100vw-32px)] sm:min-w-[520px] sm:max-w-[650px]'
   } else if (itemCount > 5) {
-    gridColsClass = 'grid-cols-2'
-    widthClass = 'min-w-[380px] max-w-[480px]'
+    gridColsClass = 'grid-cols-1 sm:grid-cols-2'
+    widthClass = 'w-full max-w-[calc(100vw-32px)] sm:min-w-[380px] sm:max-w-[480px]'
   }
 
   return (
