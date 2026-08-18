@@ -23,26 +23,38 @@ import {
 } from 'recharts'
 import { TrendingUp, Calendar, Filter, HelpCircle, X } from 'lucide-react'
 
-// Tooltip customizado para exibições detalhadas por categoria com soma total e z-index elevado
+// Tooltip customizado para exibições detalhadas por categoria com soma total e layout em colunas sem scroll
 const CategoryCustomTooltip = ({ active, payload, label, formatCurrency }) => {
   if (!active || !payload || !payload.length) return null
 
   const total = payload.reduce((acc, item) => acc + (Number(item.value) || 0), 0)
 
+  const itemCount = payload.length
+  let gridColsClass = 'grid-cols-1'
+  let widthClass = 'min-w-[220px] max-w-[320px]'
+
+  if (itemCount > 12) {
+    gridColsClass = 'grid-cols-3'
+    widthClass = 'min-w-[520px] max-w-[650px]'
+  } else if (itemCount > 5) {
+    gridColsClass = 'grid-cols-2'
+    widthClass = 'min-w-[380px] max-w-[480px]'
+  }
+
   return (
-    <div className="bg-white/95 dark:bg-zinc-900/95 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg shadow-xl text-xs min-w-[220px] max-w-[320px] flex flex-col z-[1000] pointer-events-auto">
-      <div className="font-bold text-zinc-800 dark:text-zinc-100 pb-1.5 mb-1.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-sm">
+    <div className={`bg-white/95 dark:bg-zinc-900/95 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-800 p-3 rounded-lg shadow-2xl text-xs ${widthClass} flex flex-col z-[1000] pointer-events-none`}>
+      <div className="font-bold text-zinc-800 dark:text-zinc-100 pb-1.5 mb-2 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between text-sm">
         <span>{label}</span>
       </div>
       
-      <div className="space-y-1.5 overflow-y-auto pr-1 flex-1 max-h-48">
+      <div className={`grid ${gridColsClass} gap-x-4 gap-y-1`}>
         {payload.map((entry, index) => {
           const catName = entry.name || entry.dataKey
           const val = Number(entry.value) || 0
           const color = entry.color || entry.fill || entry.stroke || '#a1a1aa'
 
           return (
-            <div key={`item-${index}`} className="flex items-center justify-between gap-3 py-0.5">
+            <div key={`item-${index}`} className="flex items-center justify-between gap-2 py-0.5 border-b border-zinc-100 dark:border-zinc-800/40">
               <div className="flex items-center gap-1.5 truncate">
                 <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
                 <span className="truncate text-zinc-600 dark:text-zinc-300 font-medium">{catName}:</span>
